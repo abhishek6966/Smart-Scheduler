@@ -313,6 +313,53 @@ function escAttr(s) { return s.replace(/"/g, '&quot;'); }
 // --- Configuration ---
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVxR8aMt_mWsQJsATc5xRoXTMwnbi0c66VZS7QwQ8NIze4_71j83uHmdJjma1W82cN/exec';
 
+const INITIAL_DATA = {
+  shifts: {
+    "2026-08-24": [
+      {id:'s1',student:'Naranjan Lal',dayOfWeek:0,start:'16:00',end:'20:30',type:'regular'},
+      {id:'s2',student:'Naranjan Lal',dayOfWeek:1,start:'16:00',end:'00:30',type:'regular'},
+      {id:'s3',student:'Naranjan Lal',dayOfWeek:3,start:'07:00',end:'11:00',type:'regular'},
+      {id:'s4',student:'Naranjan Lal',dayOfWeek:4,start:'19:00',end:'00:30',type:'regular'},
+      {id:'s5',student:'Naranjan Lal',dayOfWeek:5,start:'19:00',end:'00:30',type:'regular'},
+      {id:'s6',student:'Naranjan Lal',dayOfWeek:6,start:'19:00',end:'00:30',type:'regular'},
+      {id:'s7',student:'Abhishek Mishra',dayOfWeek:0,start:'21:30',end:'00:30',type:'training'},
+      {id:'s8',student:'Abhishek Mishra',dayOfWeek:3,start:'08:00',end:'13:00',type:'event'},
+      {id:'s9',student:'Abhishek Mishra',dayOfWeek:4,start:'12:00',end:'15:00',type:'event'},
+      {id:'s10',student:'Abhishek Mishra',dayOfWeek:4,start:'16:00',end:'18:00',type:'event',location:'Bissinger'},
+      {id:'s11',student:'Abhishek Mishra',dayOfWeek:5,start:'07:00',end:'10:00',type:'training'},
+      {id:'s12',student:'Nishwa Prajapati',dayOfWeek:0,start:'07:00',end:'16:00',type:'regular'},
+      {id:'s13',student:'Nishwa Prajapati',dayOfWeek:1,start:'07:00',end:'16:00',type:'regular'},
+      {id:'s14',student:'Nishwa Prajapati',dayOfWeek:2,start:'07:00',end:'16:00',type:'regular'},
+      {id:'s15',student:'Nishwa Prajapati',dayOfWeek:5,start:'13:00',end:'19:00',type:'regular'},
+      {id:'s16',student:'Nishwa Prajapati',dayOfWeek:6,start:'13:00',end:'19:00',type:'regular'},
+      {id:'s17',student:'Harsith Santhoshkumar',dayOfWeek:2,start:'20:30',end:'00:30',type:'regular'},
+      {id:'s18',student:'Harsith Santhoshkumar',dayOfWeek:3,start:'11:00',end:'16:00',type:'regular'},
+      {id:'s19',student:'Naman Singh',dayOfWeek:2,start:'16:00',end:'20:30',type:'regular'},
+      {id:'s20',student:'Naman Singh',dayOfWeek:4,start:'07:00',end:'13:00',type:'regular'},
+      {id:'s21',student:'Naman Singh',dayOfWeek:6,start:'07:00',end:'13:00',type:'regular'},
+      {id:'s22',student:'Harini Suresh Babu',dayOfWeek:0,start:'14:00',end:'17:00',type:'regular',location:'OUE HOURS'},
+      {id:'s23',student:'Harini Suresh Babu',dayOfWeek:0,start:'20:30',end:'00:30',type:'regular'},
+      {id:'s24',student:'Harini Suresh Babu',dayOfWeek:2,start:'12:00',end:'14:00',type:'event'},
+      {id:'s25',student:'Harini Suresh Babu',dayOfWeek:2,start:'14:00',end:'17:00',type:'regular',location:'OUE HOURS'},
+      {id:'s26',student:'Harini Suresh Babu',dayOfWeek:3,start:'16:00',end:'00:30',type:'regular'},
+      {id:'s27',student:'Harini Suresh Babu',dayOfWeek:4,start:'13:00',end:'19:00',type:'regular'},
+      {id:'s28',student:'Harini Suresh Babu',dayOfWeek:5,start:'07:00',end:'13:00',type:'regular'},
+      {id:'s29',student:'Hasti Vekariya',dayOfWeek:0,start:'21:30',end:'00:30',type:'training'},
+      {id:'s30',student:'Hasti Vekariya',dayOfWeek:3,start:'08:00',end:'13:00',type:'event'},
+      {id:'s31',student:'Hasti Vekariya',dayOfWeek:4,start:'12:00',end:'15:00',type:'event'},
+      {id:'s32',student:'Hasti Vekariya',dayOfWeek:5,start:'07:00',end:'10:00',type:'training'}
+    ]
+  },
+  unavailability: [],
+  recurringClasses: [
+    {id:'r1',student:'Alvaro Izquierdo',dayOfWeek:1,start:'00:00',end:'14:30',note:'Available after 2:30pm'},
+    {id:'r2',student:'Alvaro Izquierdo',dayOfWeek:3,start:'00:00',end:'14:30',note:'Available after 2:30pm'},
+    {id:'r3',student:'Naranjan Lal',dayOfWeek:2,start:'15:00',end:'23:59',note:'Unavailable after 3pm'},
+    {id:'r4',student:'Naranjan Lal',dayOfWeek:3,start:'00:00',end:'23:59',note:'Unavailable all day'},
+    {id:'r5',student:'Naranjan Lal',dayOfWeek:4,start:'00:00',end:'23:59',note:'Unavailable all day'}
+  ]
+};
+
 // --- Persistence ---
 async function loadData() {
   const lbl = document.getElementById('currentUserLabel');
@@ -320,22 +367,22 @@ async function loadData() {
   
   if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
     console.warn("Setup Required: You must paste your Google Apps Script Web App URL into the APPS_SCRIPT_URL variable in the code.");
-    // Fallback to local storage just for demonstration if they haven't set it up
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        state.data = JSON.parse(saved);
-        if (Array.isArray(state.data.shifts)) state.data.shifts = {}; 
-      } catch (e) { console.error('Data corrupt', e); }
-    }
+    state.data = JSON.parse(JSON.stringify(INITIAL_DATA));
   } else {
     try {
       const response = await fetch(APPS_SCRIPT_URL);
       const data = await response.json();
-      if (data && data.shifts) {
+      
+      // If database is completely empty (no shifts for any week), use initial seed data
+      if (data && Object.keys(data.shifts || {}).length === 0 && (data.unavailability || []).length === 0) {
+        state.data = JSON.parse(JSON.stringify(INITIAL_DATA));
+        // Automatically save the seed data to the DB
+        saveData();
+      } else if (data && data.shifts) {
         state.data = data;
-        if (Array.isArray(state.data.shifts)) state.data.shifts = {}; 
       }
+      
+      if (Array.isArray(state.data.shifts)) state.data.shifts = {}; 
     } catch (e) { 
       console.error('Failed to load data', e); 
       alert('Failed to load data from database.');
