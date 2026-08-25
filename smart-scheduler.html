@@ -360,71 +360,90 @@ const INITIAL_DATA = {
   ]
 };
 
+const STORAGE_KEY = 'smart-scheduler-v2';
+
 // --- Persistence ---
 async function loadData() {
   const lbl = document.getElementById('currentUserLabel');
-  if (lbl) lbl.textContent = 'Loading data...';
-  
-  if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
-    console.warn("Setup Required: You must paste your Google Apps Script Web App URL into the APPS_SCRIPT_URL variable in the code.");
-    state.data = JSON.parse(JSON.stringify(INITIAL_DATA));
-  } else {
+  if (lbl) lbl.textContent = 'Loading...';
+
+  // 1. Always try to load from localStorage first (instant)
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
     try {
-      const response = await fetch(APPS_SCRIPT_URL);
-      const data = await response.json();
-      
-      // If database is completely empty (no shifts for any week), use initial seed data
-      if (data && Object.keys(data.shifts || {}).length === 0 && (data.unavailability || []).length === 0) {
-        state.data = JSON.parse(JSON.stringify(INITIAL_DATA));
-        // Automatically save the seed data to the DB
-        saveData();
-      } else if (data && data.shifts) {
-        state.data = data;
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.shifts) {
+        state.data = parsed;
+        if (Array.isArray(state.data.shifts)) state.data.shifts = {};
       }
-      
-      if (Array.isArray(state.data.shifts)) state.data.shifts = {}; 
-    } catch (e) { 
-      console.error('Failed to load data', e); 
-      alert('Failed to load data from database.');
+    } catch(e) { console.warn('localStorage parse error', e); }
+  }
+
+  // 2. If localStorage was empty, seed with initial data
+  if (!state.data.shifts || Object.keys(state.data.shifts).length === 0) {
+    state.data = JSON.parse(JSON.stringify(INITIAL_DATA));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+  }
+
+  // 3. Try to sync with Google Sheets in background (non-blocking)
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000); // 5 sec timeout
+      const response = await fetch(APPS_SCRIPT_URL, { signal: controller.signal });
+      clearTimeout(timer);
+      const text = await response.text();
+      // Only parse if it looks like JSON (not a Google login HTML page)
+      if (text.trim().startsWith('{')) {
+        const data = JSON.parse(text);
+        if (data && data.shifts && Object.keys(data.shifts).length > 0) {
+          state.data = data;
+          if (Array.isArray(state.data.shifts)) state.data.shifts = {};
+          // Update local cache
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+        } else if (data && Object.keys(data.shifts || {}).length === 0) {
+          // Remote DB is empty, push our local data to it
+          saveData();
+        }
+      } else {
+        console.warn('Google Sheets backend not accessible - using local data.');
+      }
+    } catch (e) {
+      console.warn('Could not reach Google Sheets backend - using local data.', e.message);
     }
   }
-  
-  if (lbl) {
-    lbl.textContent = state.userName || '';
-  }
-  
-  if (document.getElementById('app').style.display !== 'none') {
-      renderAll();
-  }
+
+  if (lbl) lbl.textContent = state.userName || '';
+  if (document.getElementById('app').style.display !== 'none') renderAll();
 }
 
 async function saveData() {
   const lbl = document.getElementById('currentUserLabel');
-  if (lbl) lbl.textContent = 'Saving...';
-  
-  if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
-      if (lbl) {
-        lbl.textContent = state.userName + ' (Saved Locally)';
-        setTimeout(() => { if(state.userName) lbl.textContent = state.userName; }, 2000);
-      }
-      return;
-  }
-  
-  try {
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(state.data)
-    });
-    
+
+  // Always save to localStorage immediately
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
     if (lbl) {
-      lbl.textContent = state.userName + ' (Saved!)';
-      setTimeout(() => { if(state.userName) lbl.textContent = state.userName; }, 2000);
+      lbl.textContent = (state.userName || '') + ' ✓';
+      setTimeout(() => { if(state.userName) lbl.textContent = state.userName; }, 1500);
+    }
+    return;
+  }
+
+  // Try to also sync to Google Sheets in background
+  try {
+    await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(state.data) });
+    if (lbl) {
+      lbl.textContent = (state.userName || '') + ' ✓ Synced';
+      setTimeout(() => { if(state.userName) lbl.textContent = state.userName; }, 1500);
     }
   } catch (e) {
-    console.error('Failed to save data', e);
-    alert('Failed to save to database!');
-    if (lbl) lbl.textContent = state.userName + ' (Save Failed)';
+    console.warn('Could not sync to Google Sheets - saved locally.', e.message);
+    if (lbl) {
+      lbl.textContent = (state.userName || '') + ' ✓ Local';
+      setTimeout(() => { if(state.userName) lbl.textContent = state.userName; }, 1500);
+    }
   }
 }
 
