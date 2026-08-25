@@ -12,11 +12,11 @@
     --success: #059669; --warning: #d97706;
     
     /* Accessible Shift Colors */
-    --regular-bg: #1e3a8a; --regular-tx: #ffffff;
-    --training-bg: #854d0e; --training-tx: #ffffff;
-    --event-bg: #0f766e; --event-tx: #ffffff;
-    --closed-bg: #991b1b; --closed-tx: #ffffff;
-    --unavail-bg: #6b21a8; --unavail-tx: #ffffff;
+    --regular-bg: #1f2937; --regular-tx: #ffffff;
+    --training-bg: #fef08a; --training-tx: #854d0e;
+    --event-bg: #bfdbfe; --event-tx: #1e3a8a;
+    --closed-bg: #fecaca; --closed-tx: #991b1b;
+    --unavail-bg: #e9d5ff; --unavail-tx: #6b21a8;
   }
   
   * { box-sizing: border-box; }
@@ -67,8 +67,10 @@
   .chip.warn { outline: 3px solid var(--danger); outline-offset: -1px; }
   .chip-overridden { position: absolute; top: -6px; right: -6px; background: var(--warning); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
   
-  .add-hint { color: var(--line); font-size: 20px; text-align: center; display: block; }
+  .add-hint { color: #d1d5db; font-size: 14px; display: inline-block; padding: 2px 4px; }
+  td.cell:hover .add-hint { color: var(--sub); }
   .totcol { font-weight: 600; text-align: center; background: #f9fafb; }
+  tfoot td { font-weight: 600; background: #f9fafb; text-align: center; }
   
   /* Buttons */
   button.btn { background: var(--primary); color: white; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
@@ -591,7 +593,16 @@ function renderSchedule() {
     html += `<td class="totcol">${Math.round(studentTotalHours*10)/10}</td></tr>`;
   });
   
-  html += '</tbody>';
+  // Calculate and add Daily Totals footer
+  html += '</tbody><tfoot><tr><td>Daily total</td>';
+  let grandTotal = 0;
+  for (let i = 0; i < 7; i++) {
+    const dayTotal = weekShifts.filter(s => s.dayOfWeek === i).reduce((sum, s) => sum + duration(s.start, s.end), 0);
+    grandTotal += dayTotal;
+    html += `<td class="totcol">${Math.round(dayTotal * 10) / 10}</td>`;
+  }
+  html += `<td class="totcol">${Math.round(grandTotal * 10) / 10}</td></tr></tfoot>`;
+  
   table.innerHTML = html;
   
   // Attach Event Listeners
