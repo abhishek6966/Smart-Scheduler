@@ -111,7 +111,7 @@
     outline: none;
     transition: border-color 0.2s, background 0.2s;
   }
-  .auth-card select option { background: #2563eb; color: #fff; }
+  .auth-card select option { background: #ffffff; color: #111827; }
   .auth-card select:focus, .auth-card input:focus {
     border-color: rgba(255,255,255,0.5);
     background: rgba(255,255,255,0.15);
@@ -345,6 +345,8 @@
 <div id="modalRoot"></div>
 
 <script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVxR8aMt_mWsQJsATc5xRoXTMwnbi0c66VZS7QwQ8NIze4_71j83uHmdJjma1W82cN/exec';
+
 // --- Data & State ---
 const STORAGE_KEY = 'smart-scheduler-advanced-v1';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
