@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced UCC Ambassador Smart Scheduler</title>
+<style>
+  :root {
+    --bg: #f3f4f6; --card: #ffffff; --ink: #111827; --sub: #6b7280; --line: #e5e7eb;
+    --primary: #2563eb; --primary-hover: #1d4ed8;
+    --danger: #dc2626; --danger-hover: #b91c1c;
+    --success: #059669; --warning: #d97706;
+    
+    /* Accessible Shift Colors */
+    --regular-bg: #1e3a8a; --regular-tx: #ffffff;
+    --training-bg: #854d0e; --training-tx: #ffffff;
+    --event-bg: #0f766e; --event-tx: #ffffff;
+    --closed-bg: #991b1b; --closed-tx: #ffffff;
+    --unavail-bg: #6b21a8; --unavail-tx: #ffffff;
+  }
+  
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--ink); }
+  
+  /* Auth Screen */
+  #authScreen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+  .auth-card { background: var(--card); padding: 32px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 400px; max-width: 90vw; text-align: center; }
+  .auth-card h2 { margin-top: 0; }
+  .auth-card select, .auth-card input { width: 100%; padding: 10px; margin: 12px 0; border: 1px solid var(--line); border-radius: 6px; }
+  .auth-card button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+  
+  /* App Layout */
+  #app { display: none; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; background: var(--card); padding: 16px 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  h1 { font-size: 24px; font-weight: 700; margin: 0 0 8px; color: var(--primary); }
+  .week-nav { display: flex; align-items: center; gap: 16px; }
+  .week-nav button { background: none; border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+  .week-nav button:hover { background: #f9fafb; }
+  .week-nav span { font-weight: 600; font-size: 16px; }
+  
+  nav.tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+  nav.tabs button { background: var(--card); border: 1px solid var(--line); padding: 10px 20px; font-size: 15px; font-weight: 500; color: var(--sub); cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+  nav.tabs button.active { background: var(--primary); color: white; border-color: var(--primary); }
+  
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  
+  /* Master Schedule Table */
+  .toolbar { display: flex; justify-content: space-between; margin-bottom: 16px; }
+  .legend { display: flex; gap: 12px; font-size: 13px; color: var(--sub); }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+  
+  .table-container { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border: 1px solid var(--line); padding: 8px; vertical-align: top; }
+  thead th { background: #f9fafb; font-weight: 600; text-align: left; }
+  .day-head { text-align: center; }
+  .day-date { font-weight: 400; color: var(--sub); font-size: 11px; margin-top: 4px; }
+  td.cell { min-width: 140px; cursor: pointer; position: relative; transition: background 0.2s; }
+  td.cell:hover { background: #f9fafb; }
+  td.cell.readonly { cursor: default; }
+  td.cell.readonly:hover { background: transparent; }
+  
+  .chip { display: block; border-radius: 6px; padding: 6px 8px; font-size: 12px; margin-bottom: 4px; line-height: 1.4; position: relative; border: 1px solid rgba(0,0,0,0.1); }
+  .chip .loc { display: block; font-size: 11px; opacity: 0.9; margin-top: 2px; }
+  .chip.warn { outline: 3px solid var(--danger); outline-offset: -1px; }
+  .chip-overridden { position: absolute; top: -6px; right: -6px; background: var(--warning); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+  
+  .add-hint { color: var(--line); font-size: 20px; text-align: center; display: block; }
+  .totcol { font-weight: 600; text-align: center; background: #f9fafb; }
+  
+  /* Buttons */
+  button.btn { background: var(--primary); color: white; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+  button.btn:hover { background: var(--primary-hover); }
+  button.btn.secondary { background: white; color: var(--ink); border: 1px solid var(--line); }
+  button.btn.secondary:hover { background: #f9fafb; }
+  button.btn.danger { background: var(--danger); }
+  button.btn.danger:hover { background: var(--danger-hover); }
+  button.btn.small { padding: 4px 8px; font-size: 12px; }
+  
+  /* Modals */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .modal { background: #fff; border-radius: 12px; padding: 24px; width: 420px; max-width: 90vw; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { margin: 0 0 20px; font-size: 18px; color: var(--primary); border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+  .row2 { display: flex; gap: 12px; }
+  .row2 > div { flex: 1; }
+  .modal-actions { display: flex; justify-content: space-between; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+  
+  /* Specific UI Elements */
+  .conflict-box { background: #fef2f2; border: 1px solid #f87171; color: #991b1b; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+  .suggest-box { background: #eff6ff; border: 1px solid #93c5fd; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  
+  .list-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--line); }
+  .list-row:last-child { border-bottom: none; }
+  .list-desc { font-weight: 500; }
+  .list-meta { font-size: 12px; color: var(--sub); margin-top: 4px; }
+  
+</style>
+</head>
+<body>
+
+<!-- Authentication Overlay -->
+<div id="authScreen">
+  <div class="auth-card">
+    <h2>Welcome to Smart Scheduler</h2>
+    <p style="color:var(--sub); font-size: 14px;">Please select your role</p>
+    
+    <div style="margin-bottom: 24px;">
+      <select id="roleSelect">
+        <option value="student">Student</option>
+        <option value="professor">Professor / Admin</option>
+      </select>
+    </div>
+    
+    <div id="studentSelectWrapper">
+      <select id="studentSelect">
+        <!-- Populated via JS -->
+      </select>
+    </div>
+    
+    <div id="profPasswordWrapper" style="display: none;">
+      <input type="password" id="profPassword" placeholder="Enter Admin Password">
+      <p style="font-size: 11px; color: var(--sub); text-align: left; margin: 4px 0 0;">(Password is 'admin')</p>
+    </div>
+    
+    <button id="loginBtn" style="margin-top: 24px;">Enter Scheduler</button>
+  </div>
+</div>
+
+<!-- Main Application -->
+<div id="app">
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Smart Scheduler</h1>
+        <div style="font-size: 14px; color: var(--sub);">Logged in as: <span id="currentUserLabel" style="font-weight: 600; color: var(--ink);"></span> <button class="btn secondary small" id="logoutBtn" style="margin-left: 8px;">Logout</button></div>
+      </div>
+      <div class="week-nav">
+        <button id="prevWeekBtn">&larr; Prev Week</button>
+        <span id="currentWeekDisplay">Week of Aug 24, 2026</span>
+        <button id="nextWeekBtn">Next Week &rarr;</button>
+        <button class="btn secondary" id="todayBtn">Today</button>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button data-tab="schedule" class="active">Master Schedule</button>
+      <button data-tab="availability">Availability & Classes</button>
+      <button data-tab="conflicts" id="tab-conflicts-btn">Conflicts</button>
+    </nav>
+
+    <!-- Master Schedule Tab -->
+    <div id="tab-schedule">
+      <div class="card">
+        <div class="toolbar">
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--regular-bg)"></span>Scheduled</span>
+            <span><span class="swatch" style="background:var(--training-bg)"></span>Training</span>
+            <span><span class="swatch" style="background:var(--event-bg)"></span>Event</span>
+            <span><span class="swatch" style="background:var(--closed-bg)"></span>Closed</span>
+            <span><span class="swatch" style="background:var(--unavail-bg)"></span>Unavailable</span>
+            <span style="margin-left: 8px;"><span class="chip-overridden" style="position:static;display:inline-flex;">!</span> Override</span>
+          </div>
+          <div>
+            <button class="btn secondary" id="exportBtn">Export to CSV</button>
+          </div>
+        </div>
+        
+        <div id="readOnlyWarning" class="conflict-box" style="display:none; margin-bottom: 16px;">
+          <strong>Viewing Past Week:</strong> This schedule is locked and cannot be edited.
+        </div>
+        
+        <div class="table-container">
+          <table id="scheduleTable">
+            <!-- Rendered via JS -->
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Availability & Classes Tab -->
+    <div id="tab-availability" style="display:none;">
+      <div class="card">
+        <div class="flex-between" style="margin-bottom: 24px;">
+          <h3>Manage Availability</h3>
+          <div id="profStudentSelectorWrapper" style="display:none;">
+            <select id="profStudentSelector" style="padding: 6px; border-radius: 4px; border: 1px solid var(--line);">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <!-- One-off Unavailability -->
+          <div>
+            <div class="flex-between" style="border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 12px;">
+              <h4 style="margin:0;">One-Off Unavailability</h4>
+              <button class="btn small" id="addOneOffBtn">+ Add</button>
+            </div>
+            <div id="oneOffList"></div>
+          </div>
+          
+          <!-- Recurring Classes -->
+          <div>
+            <div class="flex-between" style="border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 12px;">
+              <h4 style="margin:0;">Semester Classes (Recurring)</h4>
+              <button class="btn small" id="addRecurringBtn">+ Add Class</button>
+            </div>
+            <div id="recurringList"></div>
+            <p style="font-size: 12px; color: var(--sub); margin-top: 12px;">Recurring classes automatically block out time every week.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conflicts Tab -->
+    <div id="tab-conflicts" style="display:none;">
+      <div class="card" id="conflictsContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+// --- Data & State ---
+const STORAGE_KEY = 'smart-scheduler-advanced-v1';
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MS_PER_WEEK = 7 * MS_PER_DAY;
+
+// Base configuration
+const STUDENTS = ['Alvaro Izquierdo','Naranjan Lal','Abhishek Mishra','Roshni Patel','Nishwa Prajapati', 'Harsith Santhoshkumar','Naman Singh','Harini Suresh Babu','Tamari Vardia','Hasti Vekariya','Rakesh Venkatesan'];
+const TYPES = {
+  regular: { label: 'Scheduled shift', bg: 'var(--regular-bg)', tx: 'var(--regular-tx)' },
+  training: { label: 'Training', bg: 'var(--training-bg)', tx: 'var(--training-tx)' },
+  event: { label: 'Event shift', bg: 'var(--event-bg)', tx: 'var(--event-tx)' },
+  closed: { label: 'Building closed', bg: 'var(--closed-bg)', tx: 'var(--closed-tx)' }
+};
+
+// Global State
+let state = {
+  userRole: null, // 'professor' | 'student'
+  userName: null,
+  currentWeekStartStr: null, // YYYY-MM-DD (Monday)
+  data: {
+    shifts: {}, // keyed by weekStartStr: [ {id, student, dayOfWeek(0-6), start, end, type, location, overrideReason} ]
+    unavailability: [], // {id, student, dateStr(YYYY-MM-DD), start, end, note}
+    recurringClasses: [] // {id, student, dayOfWeek(0-6), start, end, note}
+  }
+};
+
+// --- Initialization ---
+function init() {
+  loadData();
+  setupAuthListeners();
+  setupAppListeners();
+  
+  // Set current week to Monday of the current week
+  const today = new Date();
+  const day = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  const monday = new Date(today.setDate(diff));
+  state.currentWeekStartStr = toDateStr(monday);
+  
+  populateStudentSelects();
+}
+
+// --- Utils ---
+function toDateStr(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T12:00:00'); // Use noon to avoid timezone shift issues
+  d.setDate(d.getDate() + days);
+  return d;
+}
+function toMin(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+function span(start, end) {
+  let s = toMin(start), e = toMin(end);
+  if (e <= s) e += 1440;
+  return [s, e];
+}
+function duration(start, end) {
+  const [s, e] = span(start, end);
+  return (e - s) / 60;
+}
+function fmt(hhmm) {
+  let [h, m] = hhmm.split(':').map(Number);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  let hh = h % 12; if (hh === 0) hh = 12;
+  return hh + (m ? ':' + String(m).padStart(2, '0') : '') + ap;
+}
+function overlaps(aStart, aEnd, bStart, bEnd) {
+  const [as, ae] = span(aStart, aEnd);
+  const [bs, be] = span(bStart, bEnd);
+  return as < be && bs < ae;
+}
+function escAttr(s) { return s.replace(/"/g, '&quot;'); }
+
+// --- Configuration ---
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVxR8aMt_mWsQJsATc5xRoXTMwnbi0c66VZS7QwQ8NIze4_71j83uHmdJjma1W82cN/exec';
+
+// --- Persistence ---
+async function loadData() {
+  const lbl = document.getElementById('currentUserLabel');
+  if (lbl) lbl.textContent = 'Loading data...';
+  
+  if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    console.warn("Setup Required: You must paste your Google Apps Script Web App URL into the APPS_SCRIPT_URL variable in the code.");
+    // Fallback to local storage just for demonstration if they haven't set it up
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        state.data = JSON.parse(saved);
+        if (Array.isArray(state.data.shifts)) state.data.shifts = {}; 
+      } catch (e) { console.error('Data corrupt', e); }
+    }
+  } else {
+    try {
+      const response = await fetch(APPS_SCRIPT_URL);
+      const data = await response.json();
+      if (data && data.shifts) {
+        state.data = data;
+        if (Array.isArray(state.data.shifts)) state.data.shifts = {}; 
+      }
+    } catch (e) { 
+      console.error('Failed to load data', e); 
+      alert('Failed to load data from database.');
+    }
+  }
+  
+  if (lbl) {
+    lbl.textContent = state.userName || '';
+  }
+  
+  if (document.getElementById('app').style.display !== 'none') {
+      renderAll();
+  }
+}
+
+async function saveData() {
+  const lbl = document.getElementById('currentUserLabel');
+  if (lbl) lbl.textContent = 'Saving...';
+  
+  if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+      if (lbl) {
+        lbl.textContent = state.userName + ' (Saved Locally)';
+        setTimeout(() => { if(state.userName) lbl.textContent = state.userName; }, 2000);
+      }
+      return;
+  }
+  
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(state.data)
+    });
+    
+    if (lbl) {
+      lbl.textContent = state.userName + ' (Saved!)';
+      setTimeout(() => { if(state.userName) lbl.textContent = state.userName; }, 2000);
+    }
+  } catch (e) {
+    console.error('Failed to save data', e);
+    alert('Failed to save to database!');
+    if (lbl) lbl.textContent = state.userName + ' (Save Failed)';
+  }
+}
+
+// --- Auth Logic ---
+function setupAuthListeners() {
+  const roleSelect = document.getElementById('roleSelect');
+  const profPasswordWrapper = document.getElementById('profPasswordWrapper');
+  const studentSelectWrapper = document.getElementById('studentSelectWrapper');
+  
+  roleSelect.addEventListener('change', (e) => {
+    if (e.target.value === 'professor') {
+      profPasswordWrapper.style.display = 'block';
+      studentSelectWrapper.style.display = 'none';
+    } else {
+      profPasswordWrapper.style.display = 'none';
+      studentSelectWrapper.style.display = 'block';
+    }
+  });
+  
+  document.getElementById('loginBtn').addEventListener('click', () => {
+    const role = roleSelect.value;
+    if (role === 'professor') {
+      const pwd = document.getElementById('profPassword').value;
+      if (pwd !== 'admin') {
+        alert('Incorrect password');
+        return;
+      }
+      state.userRole = 'professor';
+      state.userName = 'Professor';
+    } else {
+      state.userRole = 'student';
+      state.userName = document.getElementById('studentSelect').value;
+    }
+    
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    
+    applyRolePermissions();
+    renderAll();
+  });
+  
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    state.userRole = null;
+    state.userName = null;
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('profPassword').value = '';
+  });
+}
+
+function populateStudentSelects() {
+  const options = STUDENTS.map(s => `<option value="${escAttr(s)}">${s}</option>`).join('');
+  document.getElementById('studentSelect').innerHTML = options;
+  document.getElementById('profStudentSelector').innerHTML = options;
+}
+
+function applyRolePermissions() {
+  document.getElementById('currentUserLabel').textContent = state.userName;
+  
+  if (state.userRole === 'professor') {
+    document.getElementById('tab-conflicts-btn').style.display = 'block';
+    document.getElementById('profStudentSelectorWrapper').style.display = 'block';
+  } else {
+    document.getElementById('tab-conflicts-btn').style.display = 'none';
+    document.getElementById('profStudentSelectorWrapper').style.display = 'none';
+    // Ensure availability tab defaults to the logged-in student
+    document.getElementById('profStudentSelector').value = state.userName;
+  }
+}
+
+// --- App Logic & Listeners ---
+function setupAppListeners() {
+  // Tabs
+  document.querySelectorAll('nav.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ['schedule', 'availability', 'conflicts'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = (t === btn.dataset.tab) ? 'block' : 'none';
+      });
+    });
+  });
+  
+  // Week Nav
+  document.getElementById('prevWeekBtn').addEventListener('click', () => changeWeek(-7));
+  document.getElementById('nextWeekBtn').addEventListener('click', () => changeWeek(7));
+  document.getElementById('todayBtn').addEventListener('click', () => {
+    const today = new Date();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(today.setDate(diff));
+    state.currentWeekStartStr = toDateStr(monday);
+    renderAll();
+  });
+  
+  // Availability View changes (Professor only)
+  document.getElementById('profStudentSelector').addEventListener('change', renderAvailability);
+  
+  // Export
+  document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+}
+
+function changeWeek(daysOffset) {
+  const d = new Date(state.currentWeekStartStr + 'T12:00:00');
+  d.setDate(d.getDate() + daysOffset);
+  state.currentWeekStartStr = toDateStr(d);
+  renderAll();
+}
+
+function isPastWeek() {
+  const currentWeekStart = new Date(state.currentWeekStartStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  // It's a past week if the sunday of that week is before today
+  const weekEnd = new Date(currentWeekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  return weekEnd < today;
+}
+
+// --- Data Accessors ---
+function getShiftsForWeek() {
+  if (!state.data.shifts[state.currentWeekStartStr]) {
+    state.data.shifts[state.currentWeekStartStr] = [];
+  }
+  return state.data.shifts[state.currentWeekStartStr];
+}
+
+function getAllUnavailabilityForStudentDay(student, dateStr, dayOfWeek) {
+  const oneOffs = state.data.unavailability.filter(u => u.student === student && u.dateStr === dateStr);
+  const recurring = state.data.recurringClasses.filter(r => r.student === student && r.dayOfWeek === dayOfWeek);
+  return [...oneOffs, ...recurring];
+}
+
+function checkOverlap(student, dateStr, dayOfWeek, start, end) {
+  const unavails = getAllUnavailabilityForStudentDay(student, dateStr, dayOfWeek);
+  return unavails.filter(u => overlaps(start, end, u.start, u.end));
+}
+
+// --- Rendering ---
+function renderAll() {
+  const dStart = new Date(state.currentWeekStartStr + 'T12:00:00');
+  const dEnd = addDays(state.currentWeekStartStr, 6);
+  document.getElementById('currentWeekDisplay').textContent = `Week of ${dStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} - ${dEnd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+  
+  const readOnly = isPastWeek() && state.userRole === 'professor';
+  document.getElementById('readOnlyWarning').style.display = readOnly ? 'block' : 'none';
+  
+  renderSchedule();
+  renderAvailability();
+  renderConflicts();
+}
+
+function renderSchedule() {
+  const table = document.getElementById('scheduleTable');
+  const readOnly = (state.userRole === 'student') || isPastWeek();
+  
+  const days = [];
+  for (let i=0; i<7; i++) {
+    const d = addDays(state.currentWeekStartStr, i);
+    days.push({
+      dateStr: toDateStr(d),
+      label: d.toLocaleDateString('en-US', {weekday:'short'}),
+      dateDisplay: d.toLocaleDateString('en-US', {month:'numeric', day:'numeric'})
+    });
+  }
+  
+  let html = '<thead><tr><th>Name</th>';
+  days.forEach(d => { html += `<th class="day-head">${d.label}<div class="day-date">${d.dateDisplay}</div></th>`; });
+  html += '<th class="totcol">Total hrs</th></tr></thead><tbody>';
+  
+  const weekShifts = getShiftsForWeek();
+  
+  STUDENTS.forEach(student => {
+    let studentTotalHours = 0;
+    html += `<tr><td style="font-weight: 500;">${student}</td>`;
+    
+    days.forEach((d, dayIdx) => {
+      const dayShifts = weekShifts.filter(s => s.student === student && s.dayOfWeek === dayIdx);
+      const dayUnavails = getAllUnavailabilityForStudentDay(student, d.dateStr, dayIdx);
+      
+      html += `<td class="cell ${readOnly ? 'readonly' : ''}" data-student="${escAttr(student)}" data-day="${dayIdx}" data-datestr="${d.dateStr}">`;
+      
+      if (!readOnly && dayShifts.length === 0 && dayUnavails.length === 0) {
+         html += '<span class="add-hint">+</span>';
+      }
+      
+      // Render Shifts
+      dayShifts.forEach(s => {
+        studentTotalHours += duration(s.start, s.end);
+        const t = TYPES[s.type] || TYPES.regular;
+        const conflicts = checkOverlap(student, d.dateStr, dayIdx, s.start, s.end);
+        const isWarn = conflicts.length > 0 && !s.overrideReason;
+        const hasOverride = !!s.overrideReason;
+        
+        html += `<span class="chip ${isWarn ? 'warn' : ''}" style="background:${t.bg};color:${t.tx}" data-edit="${s.id}">
+          ${hasOverride ? '<div class="chip-overridden">!</div>' : ''}
+          ${fmt(s.start)} - ${fmt(s.end)}
+          ${s.location ? `<span class="loc">${s.location}</span>` : ''}
+        </span>`;
+      });
+      
+      // Render Unavailability (only show if no shifts cover it fully to avoid clutter, or just show it)
+      dayUnavails.forEach(u => {
+        const isRecurring = u.dateStr === undefined;
+        html += `<span class="chip" style="background:var(--unavail-bg);color:var(--unavail-tx)">
+          ${isRecurring ? '🔄 ' : ''}Unavail: ${fmt(u.start)} - ${fmt(u.end)}
+        </span>`;
+      });
+      
+      html += `</td>`;
+    });
+    
+    html += `<td class="totcol">${Math.round(studentTotalHours*10)/10}</td></tr>`;
+  });
+  
+  html += '</tbody>';
+  table.innerHTML = html;
+  
+  // Attach Event Listeners
+  if (!readOnly) {
+    table.querySelectorAll('td.cell').forEach(td => {
+      td.addEventListener('click', (e) => {
+        if (e.target.closest('.chip')) return;
+        openShiftModal(td.dataset.student, parseInt(td.dataset.day), td.dataset.datestr, null);
+      });
+    });
+    
+    table.querySelectorAll('.chip[data-edit]').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = chip.dataset.edit;
+        const s = weekShifts.find(x => x.id === id);
+        // Find datestr from parent td
+        const td = chip.closest('td');
+        openShiftModal(s.student, s.dayOfWeek, td.dataset.datestr, s);
+      });
+    });
+  }
+}
+
+function renderAvailability() {
+  const targetStudent = state.userRole === 'professor' ? document.getElementById('profStudentSelector').value : state.userName;
+  
+  // One Offs
+  const oneOffs = state.data.unavailability.filter(u => u.student === targetStudent);
+  const oneOffList = document.getElementById('oneOffList');
+  if (oneOffs.length === 0) {
+    oneOffList.innerHTML = '<div class="list-row"><span class="list-desc" style="color:var(--sub); font-weight:normal;">No one-off unavailability added.</span></div>';
+  } else {
+    // Sort by date
+    oneOffs.sort((a,b) => a.dateStr.localeCompare(b.dateStr));
+    oneOffList.innerHTML = oneOffs.map(u => `
+      <div class="list-row">
+        <div>
+          <div class="list-desc">${u.dateStr}: ${fmt(u.start)} - ${fmt(u.end)}</div>
+          <div class="list-meta">${u.note || ''}</div>
+        </div>
+        <button class="btn danger small" onclick="deleteUnavail('${u.id}')">Delete</button>
+      </div>
+    `).join('');
+  }
+  
+  // Recurring
+  const recur = state.data.recurringClasses.filter(r => r.student === targetStudent);
+  const recurList = document.getElementById('recurringList');
+  if (recur.length === 0) {
+    recurList.innerHTML = '<div class="list-row"><span class="list-desc" style="color:var(--sub); font-weight:normal;">No recurring classes added.</span></div>';
+  } else {
+    const daysArr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    recurList.innerHTML = recur.map(r => `
+      <div class="list-row">
+        <div>
+          <div class="list-desc">${daysArr[r.dayOfWeek]}: ${fmt(r.start)} - ${fmt(r.end)}</div>
+          <div class="list-meta">${r.note || 'Class'}</div>
+        </div>
+        <button class="btn danger small" onclick="deleteRecurring('${r.id}')">Delete</button>
+      </div>
+    `).join('');
+  }
+  
+  // Handlers for Add buttons
+  document.getElementById('addOneOffBtn').onclick = () => openUnavailModal(targetStudent, false);
+  document.getElementById('addRecurringBtn').onclick = () => openUnavailModal(targetStudent, true);
+}
+
+function renderConflicts() {
+  if (state.userRole !== 'professor') return;
+  const container = document.getElementById('conflictsContainer');
+  const weekShifts = getShiftsForWeek();
+  
+  let conflictsHtml = '';
+  let count = 0;
+  
+  for (let i=0; i<7; i++) {
+    const dStr = addDays(state.currentWeekStartStr, i);
+    const dateStr = toDateStr(dStr);
+    
+    weekShifts.filter(s => s.dayOfWeek === i).forEach(s => {
+      const overlapsArr = checkOverlap(s.student, dateStr, i, s.start, s.end);
+      if (overlapsArr.length > 0) {
+        count++;
+        const o = overlapsArr[0];
+        const isRecur = o.dateStr === undefined;
+        
+        conflictsHtml += `
+          <div class="conflict-box">
+            <div class="flex-between">
+              <strong style="font-size: 14px;">${s.student} - ${dateStr} (${fmt(s.start)} - ${fmt(s.end)})</strong>
+              ${s.overrideReason ? `<span style="background:var(--warning); color:white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight:bold;">OVERRIDDEN</span>` : '<span style="background:var(--danger); color:white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight:bold;">CONFLICT</span>'}
+            </div>
+            <div style="margin-top: 8px;">
+              <strong>Conflict Cause:</strong> ${isRecur ? 'Recurring Class' : 'One-Off Unavailability'} (${fmt(o.start)} - ${fmt(o.end)})
+              ${o.note ? `<br><strong>Note:</strong> ${o.note}` : ''}
+              ${s.overrideReason ? `<br><strong>Override Reason:</strong> ${s.overrideReason}` : ''}
+            </div>
+          </div>
+        `;
+      }
+    });
+  }
+  
+  if (count === 0) {
+    container.innerHTML = '<p style="color:var(--sub);">No conflicts found for the current week.</p>';
+  } else {
+    container.innerHTML = `<h3>Conflicts (${count})</h3>` + conflictsHtml;
+  }
+}
+
+// --- Modals ---
+
+function openShiftModal(student, dayOfWeek, dateStr, existing) {
+  const root = document.getElementById('modalRoot');
+  const isEdit = !!existing;
+  
+  root.innerHTML = `
+  <div class="modal-backdrop" id="backdrop">
+    <div class="modal">
+      <h3>${isEdit ? 'Edit' : 'Add'} Shift - ${student}</h3>
+      <p style="color:var(--sub); font-size: 12px; margin-top: -16px; margin-bottom: 16px;">${dateStr}</p>
+      
+      <div id="smartSuggestBox" style="display:none;"></div>
+      <div id="conflictWarningBox" style="display:none;"></div>
+      
+      <div class="row2">
+        <div class="field"><label>Start</label><input type="time" id="mStart" value="${existing ? existing.start : '09:00'}"></div>
+        <div class="field"><label>End</label><input type="time" id="mEnd" value="${existing ? existing.end : '12:00'}"></div>
+      </div>
+      
+      <div class="field"><label>Type</label>
+        <select id="mType">
+          ${Object.entries(TYPES).map(([k,v]) => `<option value="${k}" ${existing && existing.type===k ? 'selected' : ''}>${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Location (Optional)</label><input type="text" id="mLoc" value="${existing && existing.location ? existing.location : ''}"></div>
+      
+      <div id="overrideSection" style="display:none; background: #fffbeb; padding: 12px; border: 1px solid #fde68a; border-radius: 6px; margin-bottom: 16px;">
+        <label style="font-weight:bold; color: #b45309; font-size: 12px; display:flex; align-items:center; gap: 8px;">
+          <input type="checkbox" id="mOverrideCheck" ${existing && existing.overrideReason ? 'checked' : ''}> Force Assign (Override Conflict)
+        </label>
+        <div id="overrideReasonWrapper" style="display: ${existing && existing.overrideReason ? 'block' : 'none'}; margin-top: 8px;">
+          <input type="text" id="mOverrideReason" placeholder="Reason / Proof of agreement" value="${existing && existing.overrideReason ? existing.overrideReason : ''}" style="width: 100%; padding: 6px; font-size: 12px;">
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <div>
+          ${isEdit ? '<button class="btn danger" id="mDelete">Remove</button>' : '<button class="btn secondary" id="mSuggestBtn">Smart Suggest</button>'}
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn secondary" id="mCancel">Cancel</button>
+          <button class="btn" id="mSave">${isEdit ? 'Save' : 'Add'}</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  
+  // Logic to check conflicts dynamically
+  function updateWarnings() {
+    const start = document.getElementById('mStart').value;
+    const end = document.getElementById('mEnd').value;
+    if (!start || !end) return;
+    
+    const overlapsArr = checkOverlap(student, dateStr, dayOfWeek, start, end);
+    const warnBox = document.getElementById('conflictWarningBox');
+    const overSection = document.getElementById('overrideSection');
+    
+    if (overlapsArr.length > 0) {
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = `<div class="conflict-box" style="margin-bottom:0;"><strong>Conflict!</strong> Student is marked unavailable during this time.</div>`;
+      overSection.style.display = 'block';
+    } else {
+      warnBox.style.display = 'none';
+      overSection.style.display = 'none';
+    }
+  }
+  
+  document.getElementById('mStart').addEventListener('change', updateWarnings);
+  document.getElementById('mEnd').addEventListener('change', updateWarnings);
+  updateWarnings();
+  
+  // Override checkbox toggle
+  const overrideCheck = document.getElementById('mOverrideCheck');
+  if (overrideCheck) {
+    overrideCheck.addEventListener('change', (e) => {
+      document.getElementById('overrideReasonWrapper').style.display = e.target.checked ? 'block' : 'none';
+    });
+  }
+  
+  // Smart Suggest
+  const suggestBtn = document.getElementById('mSuggestBtn');
+  if (suggestBtn) {
+    suggestBtn.addEventListener('click', () => {
+      const start = document.getElementById('mStart').value;
+      const end = document.getElementById('mEnd').value;
+      
+      // Find students who have NO conflicts and NO overlapping shifts
+      const weekShifts = getShiftsForWeek();
+      
+      const availableStudents = STUDENTS.filter(st => {
+        // Check unavailabilities
+        if (checkOverlap(st, dateStr, dayOfWeek, start, end).length > 0) return false;
+        // Check existing shifts
+        const dayShifts = weekShifts.filter(s => s.student === st && s.dayOfWeek === dayOfWeek);
+        if (dayShifts.some(s => overlaps(start, end, s.start, s.end))) return false;
+        return true;
+      });
+      
+      if (availableStudents.length === 0) {
+        document.getElementById('smartSuggestBox').style.display = 'block';
+        document.getElementById('smartSuggestBox').innerHTML = `<div class="conflict-box">No students are available at this time.</div>`;
+        return;
+      }
+      
+      // Calculate total hours for the week to find the one with minimum hours
+      let bestStudent = null;
+      let minHours = Infinity;
+      
+      availableStudents.forEach(st => {
+        const total = weekShifts.filter(s => s.student === st).reduce((sum, s) => sum + duration(s.start, s.end), 0);
+        if (total < minHours) {
+          minHours = total;
+          bestStudent = st;
+        }
+      });
+      
+      document.getElementById('smartSuggestBox').style.display = 'block';
+      document.getElementById('smartSuggestBox').innerHTML = `
+        <div class="suggest-box">
+          <strong>Smart Suggestion:</strong> Assign to <strong>${bestStudent}</strong>.<br>
+          They are fully available and currently have only ${Math.round(minHours*10)/10} hours scheduled this week.
+        </div>
+      `;
+    });
+  }
+  
+  // Action Handlers
+  document.getElementById('mCancel').onclick = () => root.innerHTML = '';
+  document.getElementById('backdrop').addEventListener('click', (e) => { if (e.target.id === 'backdrop') root.innerHTML = ''; });
+  
+  if (isEdit) {
+    document.getElementById('mDelete').onclick = () => {
+      state.data.shifts[state.currentWeekStartStr] = getShiftsForWeek().filter(s => s.id !== existing.id);
+      saveData(); root.innerHTML = ''; renderAll();
+    };
+  }
+  
+  document.getElementById('mSave').onclick = () => {
+    const start = document.getElementById('mStart').value;
+    const end = document.getElementById('mEnd').value;
+    const type = document.getElementById('mType').value;
+    const loc = document.getElementById('mLoc').value.trim();
+    
+    if (!start || !end) return;
+    
+    // Check conflicts on save
+    const overlapsArr = checkOverlap(student, dateStr, dayOfWeek, start, end);
+    let overrideReason = null;
+    
+    if (overlapsArr.length > 0) {
+      if (!document.getElementById('mOverrideCheck').checked) {
+        alert("Cannot save: Conflict exists and Override is not checked.");
+        return;
+      }
+      overrideReason = document.getElementById('mOverrideReason').value.trim();
+      if (!overrideReason) {
+        alert("Please provide a reason or proof for overriding this conflict.");
+        return;
+      }
+    }
+    
+    if (isEdit) {
+      Object.assign(existing, { start, end, type, location: loc || undefined, overrideReason });
+    } else {
+      getShiftsForWeek().push({
+        id: 's_' + Date.now(),
+        student,
+        dayOfWeek,
+        start, end, type,
+        location: loc || undefined,
+        overrideReason
+      });
+    }
+    
+    saveData(); root.innerHTML = ''; renderAll();
+  };
+}
+
+
+function openUnavailModal(student, isRecurring) {
+  const root = document.getElementById('modalRoot');
+  
+  let daysHtml = '';
+  if (isRecurring) {
+    const daysArr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    daysHtml = `<div class="field"><label>Day of Week</label><select id="uDay">
+      ${daysArr.map((d,i) => `<option value="${i}">${d}</option>`).join('')}
+    </select></div>`;
+  } else {
+    daysHtml = `<div class="field"><label>Date</label><input type="date" id="uDate" required></div>`;
+  }
+  
+  root.innerHTML = `
+  <div class="modal-backdrop" id="backdrop2">
+    <div class="modal">
+      <h3>Add ${isRecurring ? 'Recurring Class' : 'One-Off Unavailability'} - ${student}</h3>
+      ${daysHtml}
+      <div class="row2">
+        <div class="field"><label>Start Time</label><input type="time" id="uStart" value="09:00"></div>
+        <div class="field"><label>End Time</label><input type="time" id="uEnd" value="17:00"></div>
+      </div>
+      <div class="field"><label>Note / Class Name</label><input type="text" id="uNote"></div>
+      
+      <div class="modal-actions">
+        <div></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn secondary" id="uCancel">Cancel</button>
+          <button class="btn" id="uSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  
+  document.getElementById('uCancel').onclick = () => root.innerHTML = '';
+  document.getElementById('backdrop2').addEventListener('click', (e) => { if (e.target.id === 'backdrop2') root.innerHTML = ''; });
+  
+  document.getElementById('uSave').onclick = () => {
+    const start = document.getElementById('uStart').value;
+    const end = document.getElementById('uEnd').value;
+    const note = document.getElementById('uNote').value.trim();
+    
+    if (!start || !end) return;
+    
+    if (isRecurring) {
+      const dayOfWeek = parseInt(document.getElementById('uDay').value);
+      state.data.recurringClasses.push({ id: 'r_' + Date.now(), student, dayOfWeek, start, end, note });
+    } else {
+      const dateStr = document.getElementById('uDate').value;
+      if (!dateStr) return;
+      state.data.unavailability.push({ id: 'u_' + Date.now(), student, dateStr, start, end, note });
+    }
+    
+    saveData(); root.innerHTML = ''; renderAll();
+  };
+}
+
+window.deleteUnavail = function(id) {
+  if (!confirm('Remove this unavailability?')) return;
+  state.data.unavailability = state.data.unavailability.filter(u => u.id !== id);
+  saveData(); renderAll();
+};
+
+window.deleteRecurring = function(id) {
+  if (!confirm('Remove this recurring class?')) return;
+  state.data.recurringClasses = state.data.recurringClasses.filter(r => r.id !== id);
+  saveData(); renderAll();
+};
+
+// --- Export ---
+function exportToCSV() {
+  const weekShifts = getShiftsForWeek();
+  let csv = "Student,Date,Day,Start Time,End Time,Type,Location,Override Reason\n";
+  
+  weekShifts.forEach(s => {
+    const dateStr = toDateStr(addDays(state.currentWeekStartStr, s.dayOfWeek));
+    const dayName = addDays(state.currentWeekStartStr, s.dayOfWeek).toLocaleDateString('en-US',{weekday:'long'});
+    const loc = s.location ? `"${s.location.replace(/"/g, '""')}"` : "";
+    const over = s.overrideReason ? `"${s.overrideReason.replace(/"/g, '""')}"` : "";
+    
+    csv += `"${s.student}",${dateStr},${dayName},${s.start},${s.end},${s.type},${loc},${over}\n`;
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Schedule_${state.currentWeekStartStr}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Start app
+init();
+
+</script>
+</body>
+</html>
