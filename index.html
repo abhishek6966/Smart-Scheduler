@@ -608,9 +608,11 @@ function setupAuthListeners() {
 }
 
 function populateStudentSelects() {
-  const options = STUDENTS.map(s => `<option value="${escAttr(s)}">${s}</option>`).join('');
+  const options = STUDENTS.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
   document.getElementById('studentSelect').innerHTML = options;
-  document.getElementById('profStudentSelector').innerHTML = options;
+  if(document.getElementById('profStudentSelector')) {
+    document.getElementById('profStudentSelector').innerHTML = options;
+  }
 }
 
 function applyRolePermissions() {
