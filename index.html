@@ -420,11 +420,44 @@
 
     header {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
+      justify-content: space-between;    .modal {
       background: var(--card);
-      padding: 16px 24px;
+      border-radius: 12px;
+      width: 400px;
+      max-width: 90vw;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal h3 {
+      margin: 0;
+    }
+
+    .type-pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      color: var(--sub);
+      background: transparent;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .type-pill:hover:not(.disabled) {
+      background: rgba(0,0,0,0.03);
+    }
+    .type-pill.selected {
+      background: rgba(59, 130, 246, 0.1) !important;
+      color: #2563eb !important;
+      border-color: #3b82f6 !important;
+    }
+    .type-pill.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }   padding: 16px 24px;
       border-radius: 12px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
@@ -1484,14 +1517,11 @@
       .modal {
         width: 96vw !important;
         max-width: 96vw !important;
-        padding: 18px 14px;
         border-radius: 16px;
         max-height: 92vh;
       }
       .modal h3 { font-size: 16px; margin-bottom: 14px; }
-      .modal-actions { flex-direction: column; gap: 8px; width: 100%; }
-      .modal-actions > div { display: flex; flex-direction: column; width: 100%; gap: 8px; }
-      .modal-actions button { width: 100%; margin: 0; }
+      .modal-actions { width: 100%; }
       .row2 { flex-direction: column; gap: 8px; }
 
       /* ── Swap Banner ─────────────────────────── */
@@ -2837,6 +2867,14 @@
 
     // --- Modals ---
 
+    window.selectModalType = function(val, el) {
+      if (el.classList.contains('disabled')) return;
+      document.getElementById('mType').value = val;
+      const pills = document.querySelectorAll('.type-pill');
+      pills.forEach(p => p.classList.remove('selected'));
+      el.classList.add('selected');
+    };
+
     function openShiftModal(student, dayOfWeek, dateStr, existing) {
       const isPast = dateStr < toDateStr(new Date());
       const isEdit = !!existing;
@@ -2851,46 +2889,58 @@
 
       root.innerHTML = `
   <div class="modal-backdrop" id="backdrop">
-    <div class="modal">
-      <h3>${isPast ? 'View' : (isEdit ? 'Edit' : 'Add')} Shift - ${student}</h3>
-      <p style="color:var(--sub); font-size: 12px; margin-top: -16px; margin-bottom: 16px;">${dateStr}</p>
-      
-      <div id="smartSuggestBox" style="display:none;"></div>
-      <div id="conflictWarningBox" style="display:none;"></div>
-      
-      <div class="row2">
-        <div class="field"><label>Start</label><input type="time" id="mStart" value="${existing ? existing.start : '09:00'}" ${dis}></div>
-        <div class="field"><label>End</label><input type="time" id="mEnd" value="${existing ? existing.end : '12:00'}" ${dis}></div>
+    <div class="modal" style="padding:0; overflow:hidden;">
+      <div style="background: linear-gradient(135deg, #4f46e5, #3b82f6); padding: 16px 20px; color: white;">
+        <h3 style="margin:0; font-size:16px; font-weight:600; letter-spacing:-0.3px; color:white;">${isPast ? 'View' : (isEdit ? 'Edit' : 'Add')} Shift</h3>
+        <div style="font-size:12px; opacity:0.9; margin-top:2px;">${student} &bull; ${dateStr}</div>
       </div>
       
-      <div class="field"><label>Type</label>
-        <select id="mType" ${dis}>
-          ${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${existing && existing.type === k ? 'selected' : ''}>${v.label}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field"><label>Location (Optional)</label><input type="text" id="mLoc" value="${existing && existing.location ? existing.location : ''}" ${dis}></div>
-      
-      <div id="overrideSection" style="display:none; background: #fffbeb; padding: 12px; border: 1px solid #fde68a; border-radius: 6px; margin-bottom: 16px;">
-        <label style="font-weight:bold; color: #b45309; font-size: 12px; display:flex; align-items:center; gap: 8px;">
-          <input type="checkbox" id="mOverrideCheck" ${existing && existing.overrideReason ? 'checked' : ''} ${dis}> Force Assign (Override Conflict)
-        </label>
-        <div id="overrideReasonWrapper" style="display: ${existing && existing.overrideReason ? 'block' : 'none'}; margin-top: 8px;">
-          <input type="text" id="mOverrideReason" placeholder="Reason / Proof of agreement" value="${existing && existing.overrideReason ? existing.overrideReason : ''}" style="width: 100%; padding: 6px; font-size: 12px;" ${dis}>
+      <div style="padding: 20px; display:flex; flex-direction:column; gap: 16px;">
+        <div id="smartSuggestBox" style="display:none;"></div>
+        <div id="conflictWarningBox" style="display:none;"></div>
+        
+        <div class="row2">
+          <div class="field" style="margin:0;"><label style="font-size:11px; margin-bottom:4px;">Start Time</label><input type="time" id="mStart" value="${existing ? existing.start : '09:00'}" ${dis}></div>
+          <div class="field" style="margin:0;"><label style="font-size:11px; margin-bottom:4px;">End Time</label><input type="time" id="mEnd" value="${existing ? existing.end : '12:00'}" ${dis}></div>
         </div>
-      </div>
-      
-      <div class="modal-actions">
-        ${isPast ? `
-          <button class="btn secondary" id="mCancel" style="width:100%;">Close</button>
-        ` : `
-          <div>
-            ${isEdit ? '<button class="btn danger" id="mDelete">Remove</button>' : '<button class="btn secondary" id="mSuggestBtn">Smart Suggest</button>'}
+        
+        <div class="field" style="margin:0;">
+          <label style="font-size:11px; margin-bottom:6px;">Shift Type</label>
+          <input type="hidden" id="mType" value="${existing ? existing.type : 'regular'}">
+          <div id="typePills" style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${Object.entries(TYPES).map(([k, v]) => {
+              const isSel = existing ? existing.type === k : k === 'regular';
+              return \`<div class="type-pill \${isSel ? 'selected' : ''} \${isPast ? 'disabled' : ''}" 
+                   onclick="selectModalType('\${k}', this)">
+                \${v.label}
+              </div>\`;
+            }).join('')}
           </div>
-          <div style="display:flex; gap:8px;" class="modal-action-row">
-            <button class="btn secondary" id="mCancel" style="flex:1;">Cancel</button>
-            <button class="btn" id="mSave" style="flex:1;">${isEdit ? 'Save' : 'Add'}</button>
+        </div>
+        
+        <div class="field" style="margin:0;"><label style="font-size:11px; margin-bottom:4px;">Location (Optional)</label><input type="text" id="mLoc" value="${existing && existing.location ? existing.location : ''}" ${dis} placeholder="e.g. Gateway, Remote"></div>
+        
+        <div id="overrideSection" style="display:none; background: #fffbeb; padding: 12px; border: 1px solid #fde68a; border-radius: 6px; margin-bottom: 4px;">
+          <label style="font-weight:bold; color: #b45309; font-size: 12px; display:flex; align-items:center; gap: 8px;">
+            <input type="checkbox" id="mOverrideCheck" ${existing && existing.overrideReason ? 'checked' : ''} ${dis}> Force Assign (Override Conflict)
+          </label>
+          <div id="overrideReasonWrapper" style="display: ${existing && existing.overrideReason ? 'block' : 'none'}; margin-top: 8px;">
+            <input type="text" id="mOverrideReason" placeholder="Reason / Proof of agreement" value="${existing && existing.overrideReason ? existing.overrideReason : ''}" style="width: 100%; padding: 6px; font-size: 12px;" ${dis}>
           </div>
-        `}
+        </div>
+        
+        <div class="modal-actions" style="margin-top:4px;">
+          ${isPast ? `
+            <button class="btn secondary" id="mCancel" style="width:100%;">Close</button>
+          ` : `
+            ${!isEdit ? '<div style="margin-bottom:12px;"><button class="btn secondary" id="mSuggestBtn" style="width:100%; font-size:12px; border:1px dashed var(--line); background:transparent;">✨ Smart Suggest Time</button></div>' : ''}
+            <div style="display:flex; gap:8px; width:100%;">
+              ${isEdit ? '<button class="btn danger" id="mDelete" style="flex:1; padding:10px 4px;">Remove</button>' : ''}
+              <button class="btn secondary" id="mCancel" style="flex:1; padding:10px 4px;">Cancel</button>
+              <button class="btn" id="mSave" style="flex:1; padding:10px 4px;">${isEdit ? 'Save' : 'Add Shift'}</button>
+            </div>
+          `}
+        </div>
       </div>
     </div>
   </div>`;
