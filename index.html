@@ -2063,19 +2063,19 @@
       let html = '<thead><tr><th>First Name</th><th>Last Name</th>';
       days.forEach(d => { 
         const specialType = (state.data.specialDays && state.data.specialDays[d.dateStr]) || null;
-        let bgStyle = '';
-        let txStyle = '';
+        let headerStyle = '';
+        let badge = '';
         
         if (specialType && spCfg[specialType]) {
-          bgStyle = `background-color: var(--special-${specialType}-bg);`;
-          txStyle = `color: var(--special-${specialType}-tx);`;
+          headerStyle = `background:${spCfg[specialType].bg}; color:${spCfg[specialType].tx};`;
+          badge = `<span style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:1px 5px;border-radius:10px;border:1px solid ${spCfg[specialType].tx}55;margin-top:3px;opacity:0.85;">${spCfg[specialType].label}</span>`;
         }
 
-        const adminControls = !readOnly ? 
-          `<div style="font-size:10px; cursor:pointer; opacity:0.6; margin-top:4px;" onclick="toggleSpecialDay('${d.dateStr}')" title="Click to toggle Holiday/Closed status">✎</div>` 
-          : '';
+        const clickAttr = !readOnly 
+          ? `onclick="openDayTypeModal('${d.dateStr}', '${d.label}')" style="cursor:pointer;${headerStyle}" title="Click to configure day type"`
+          : `style="${headerStyle}"`;
 
-        html += `<th class="day-head" style="${bgStyle} ${txStyle}">${d.label}<div class="day-date">${d.dateDisplay}</div>${adminControls}</th>`; 
+        html += `<th class="day-head" ${clickAttr}>${d.label}<div class="day-date" style="${specialType ? 'opacity:0.8;' : ''}">${d.dateDisplay}</div>${badge}</th>`; 
       });
       html += '<th class="totcol">Total hrs</th></tr></thead><tbody>';
 
@@ -3329,6 +3329,121 @@
 
       container.innerHTML = rosterHtml + custHtml + specialHtml;
     }
+
+    // ── Special Day Modal ───────────────────────────────────────────────────
+    window.openDayTypeModal = function(dateStr, label) {
+      const root = document.getElementById('modalRoot');
+      const currentType = (state.data.specialDays || {})[dateStr] || 'working';
+      const cfg = getSpecialDayConfig();
+
+      const btnStyle = (key, active) => {
+        if (key === 'working') {
+          return active ? 'background:var(--ink);color:white;' : '';
+        }
+        return active ? `background:${cfg[key].bg};color:${cfg[key].tx};border:2px solid ${cfg[key].tx};` : '';
+      };
+
+      root.innerHTML = `
+        <div class="modal-backdrop" id="backdrop" onclick="closeModal()">
+          <div class="modal" onclick="event.stopPropagation()" style="width:320px;">
+            <h3 style="margin-bottom:4px;">Configure Day</h3>
+            <p style="color:var(--sub);font-size:13px;margin-bottom:20px;">${label} &mdash; ${dateStr}</p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn ${currentType==='working'?'':'secondary'}" onclick="saveDayType('${dateStr}','working')" style="width:100%;${btnStyle('working', currentType==='working')}">🏢 Normal Working Day</button>
+              <button class="btn ${currentType==='holiday'?'':'secondary'}" onclick="saveDayType('${dateStr}','holiday')" style="width:100%;${btnStyle('holiday', currentType==='holiday')}">🌴 ${cfg.holiday.label}</button>
+              <button class="btn ${currentType==='closed'?'':'secondary'}" onclick="saveDayType('${dateStr}','closed')" style="width:100%;${btnStyle('closed', currentType==='closed')}">🚫 ${cfg.closed.label}</button>
+            </div>
+            <button class="btn secondary" onclick="closeModal()" style="width:100%;margin-top:16px;">Cancel</button>
+          </div>
+        </div>
+      `;
+    };
+
+    window.saveDayType = function(dateStr, type) {
+      if (!state.data.specialDays) state.data.specialDays = {};
+      if (type === 'working') {
+        delete state.data.specialDays[dateStr];
+      } else {
+        state.data.specialDays[dateStr] = type;
+      }
+      closeModal();
+      saveData();
+      renderAll();
+      const names = { working: 'Working Day', holiday: 'Holiday', closed: 'Closed' };
+      showToast(`📅 ${dateStr} set to ${names[type]}.`, 'success', 2500);
+    };
+
+    // ── Special Day Team Management Helpers ────────────────────────────────
+    window.previewSpecialDayConfig = function(key) {
+      const bg = (document.getElementById('sp_bg_' + key) || {}).value;
+      const tx = (document.getElementById('sp_tx_' + key) || {}).value;
+      if (bg) document.documentElement.style.setProperty('--special-' + key + '-bg', bg);
+      if (tx) document.documentElement.style.setProperty('--special-' + key + '-tx', tx);
+    };
+
+    window.saveSpecialDayConfig = function() {
+      if (!state.data.specialDayColors) state.data.specialDayColors = {};
+      ['holiday', 'closed'].forEach(key => {
+        const labelEl = document.getElementById('sp_label_' + key);
+        const bgEl    = document.getElementById('sp_bg_'    + key);
+        const txEl    = document.getElementById('sp_tx_'    + key);
+        if (labelEl && bgEl && txEl) {
+          state.data.specialDayColors[key] = {
+            label: labelEl.value.trim() || SPECIAL_DAY_DEFAULTS[key].label,
+            bg:    bgEl.value,
+            tx:    txEl.value
+          };
+        }
+      });
+      saveData();
+      applySpecialDayConfig();
+      renderAll();
+      showToast('🗓️ Day type colors saved!', 'success', 3000);
+    };
+
+    window.resetSpecialDayConfig = function() {
+      state.data.specialDayColors = {};
+      saveData();
+      applySpecialDayConfig();
+      renderAll();
+      showToast('Day type colors reset to defaults.', 'success', 2000);
+    };
+
+    window.applyBulkRange = function() {
+      const startVal = (document.getElementById('bulk_start') || {}).value;
+      const endVal   = (document.getElementById('bulk_end')   || {}).value;
+      const typeVal  = (document.getElementById('bulk_type')  || {}).value;
+
+      if (!startVal || !endVal) {
+        showToast('Please select both a start and end date.', 'error', 3000);
+        return;
+      }
+
+      const start = new Date(startVal + 'T12:00:00');
+      const end   = new Date(endVal   + 'T12:00:00');
+
+      if (start > end) {
+        showToast('Start date must be on or before end date.', 'error', 3000);
+        return;
+      }
+
+      if (!state.data.specialDays) state.data.specialDays = {};
+      let count = 0;
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const ds = d.toISOString().split('T')[0];
+        if (!typeVal) {
+          delete state.data.specialDays[ds];
+        } else {
+          state.data.specialDays[ds] = typeVal;
+        }
+        count++;
+      }
+
+      saveData();
+      renderAll();
+      const label = typeVal ? (typeVal === 'holiday' ? '🌴 Holiday' : '🚫 Closed') : '🏢 Working Day';
+      showToast(`${label} applied to ${count} day${count !== 1 ? 's' : ''}.`, 'success', 3000);
+    };
 
     // ── Type Customizer Helpers ───────────────────────────────
     window.previewTypeConfig = function (key) {
