@@ -2226,16 +2226,82 @@
     // --- Export ---
     function exportToCSV() {
       const weekShifts = getShiftsForWeek();
-      let csv = "Student,Date,Day,Start Time,End Time,Type,Location,Override Reason\n";
+      
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = addDays(state.currentWeekStartStr, i);
+        days.push({
+          dateStr: toDateStr(d),
+          label: d.toLocaleDateString('en-US', { weekday: 'short' }),
+          dateDisplay: d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })
+        });
+      }
 
-      weekShifts.forEach(s => {
-        const dateStr = toDateStr(addDays(state.currentWeekStartStr, s.dayOfWeek));
-        const dayName = addDays(state.currentWeekStartStr, s.dayOfWeek).toLocaleDateString('en-US', { weekday: 'long' });
-        const loc = s.location ? `"${s.location.replace(/"/g, '""')}"` : "";
-        const over = s.overrideReason ? `"${s.overrideReason.replace(/"/g, '""')}"` : "";
+      let csv = "First Name,Last Name,";
+      days.forEach(d => { csv += `"${d.label} ${d.dateDisplay}",`; });
+      csv += "Total hrs\n";
 
-        csv += `"${s.student}",${dateStr},${dayName},${s.start},${s.end},${s.type},${loc},${over}\n`;
+      const activeOrScheduledStudents = state.data.students.filter(st => {
+        if (!state.data.inactiveStudents.includes(st)) return true;
+        const hasShifts = weekShifts.some(s => s.student === st);
+        return hasShifts;
       });
+
+      activeOrScheduledStudents.forEach(student => {
+        let studentTotalHours = 0;
+        let row = `"${firstName(student)}","${lastName(student)}",`;
+
+        days.forEach((d, dayIdx) => {
+          const dayShifts = weekShifts.filter(s => s.student === student && s.dayOfWeek === dayIdx);
+          const dayUnavails = getAllUnavailabilityForStudentDay(student, d.dateStr, dayIdx);
+          
+          let cellLines = [];
+
+          // Render Shifts
+          dayShifts.forEach(s => {
+            studentTotalHours += duration(s.start, s.end);
+            const t = TYPES[s.type] || TYPES.regular;
+            const conflicts = checkOverlap(student, d.dateStr, dayIdx, s.start, s.end);
+            const isWarn = conflicts.length > 0 && !s.overrideReason;
+            const hasOverride = !!s.overrideReason;
+            
+            let shiftText = `${fmt(s.start)} - ${fmt(s.end)} (${t.label})`;
+            if (s.location) shiftText += ` [${s.location}]`;
+            if (hasOverride) shiftText += ` *Override: ${s.overrideReason}*`;
+            else if (isWarn) shiftText += ` *Conflict!*`;
+            
+            cellLines.push(shiftText);
+          });
+
+          // Render Unavailability
+          dayUnavails.forEach(u => {
+            const isRecurring = u.dateStr === undefined;
+            let unavText = `${isRecurring ? '(Recurring) ' : ''}Unavail: ${fmt(u.start)} - ${fmt(u.end)}`;
+            if (u.note) unavText += ` [${u.note}]`;
+            cellLines.push(unavText);
+          });
+
+          const cellContent = cellLines.join('\n').replace(/"/g, '""'); // escape quotes for CSV
+          row += `"${cellContent}",`;
+        });
+
+        row += `"${Math.round(studentTotalHours * 10) / 10}"\n`;
+        csv += row;
+      });
+      
+      // Calculate daily totals at the bottom just like the table
+      let dailyTotalsRow = '"Daily total","",';
+      let weekTotal = 0;
+      days.forEach((d, dayIdx) => {
+          let dayTotal = 0;
+          weekShifts.forEach(s => {
+              if (s.dayOfWeek === dayIdx) dayTotal += duration(s.start, s.end);
+          });
+          weekTotal += dayTotal;
+          dailyTotalsRow += `"${Math.round(dayTotal * 10) / 10}",`;
+      });
+      dailyTotalsRow += `"${Math.round(weekTotal * 10) / 10}"\n`;
+      csv += dailyTotalsRow;
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
