@@ -301,7 +301,7 @@
       box-shadow: 0 12px 40px rgba(0,0,0,0.5);
     }
 
-    .custom-dropdown.open .custom-dropdown-list {
+    .custom-dropdown-list.open {
       max-height: 280px;
       opacity: 1;
       overflow-y: auto;
@@ -1678,30 +1678,36 @@
     function initCustomDropdown(dropdownEl, listEl, labelEl, nativeSelect, onChange) {
       const trigger = dropdownEl.querySelector('.custom-dropdown-trigger');
 
+      // Portal: move the list to <body> so it's never clipped by any parent
+      document.body.appendChild(listEl);
+
       function positionList() {
         const rect = trigger.getBoundingClientRect();
+        // Match trigger width and align left edge
         listEl.style.left = rect.left + 'px';
         listEl.style.width = rect.width + 'px';
-        // Open below, but flip above if not enough space
+        // Smart placement: open below normally, flip above if space is tight
         const spaceBelow = window.innerHeight - rect.bottom - 8;
-        const spaceAbove = rect.top - 8;
-        const listH = Math.min(280, listEl.scrollHeight || 280);
-        if (spaceBelow >= listH || spaceBelow >= spaceAbove) {
+        const listH = Math.min(280, listEl.scrollHeight || 200);
+        if (spaceBelow >= listH || spaceBelow >= rect.top) {
           listEl.style.top = (rect.bottom + 6) + 'px';
           listEl.style.bottom = 'auto';
         } else {
-          listEl.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
           listEl.style.top = 'auto';
+          listEl.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
         }
       }
 
       // Open/close on click
       trigger.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOpen = dropdownEl.classList.contains('open');
+        const isOpen = listEl.classList.contains('open');
+        // Close any other open dropdown lists
+        document.querySelectorAll('.custom-dropdown-list.open').forEach(d => d.classList.remove('open'));
         document.querySelectorAll('.custom-dropdown.open').forEach(d => d.classList.remove('open'));
         if (!isOpen) {
           dropdownEl.classList.add('open');
+          listEl.classList.add('open');
           positionList();
         }
       });
@@ -1711,25 +1717,27 @@
         const opt = e.target.closest('.custom-dropdown-option');
         if (!opt) return;
         const val = opt.dataset.value;
-        // Update label
         labelEl.textContent = opt.textContent.replace('✓', '').trim();
-        // Update native select
         nativeSelect.value = val;
-        // Update selected class
         listEl.querySelectorAll('.custom-dropdown-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         // Close
         dropdownEl.classList.remove('open');
-        // Fire callback
+        listEl.classList.remove('open');
         if (onChange) onChange(val);
       });
 
       // Close on outside click
-      document.addEventListener('click', () => dropdownEl.classList.remove('open'));
+      document.addEventListener('click', (e) => {
+        if (!dropdownEl.contains(e.target) && !listEl.contains(e.target)) {
+          dropdownEl.classList.remove('open');
+          listEl.classList.remove('open');
+        }
+      });
 
-      // Reposition on scroll/resize
-      window.addEventListener('resize', () => { if (dropdownEl.classList.contains('open')) positionList(); });
-      window.addEventListener('scroll', () => { if (dropdownEl.classList.contains('open')) positionList(); }, true);
+      // Reposition on scroll/resize while open
+      window.addEventListener('resize', () => { if (listEl.classList.contains('open')) positionList(); });
+      window.addEventListener('scroll', () => { if (listEl.classList.contains('open')) positionList(); }, true);
     }
 
     // --- Auth Logic ---
