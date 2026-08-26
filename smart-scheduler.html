@@ -334,6 +334,8 @@
     from { transform: translateY(0);    opacity: 1; }
     to   { transform: translateY(20px); opacity: 0; }
   }
+  @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+  @keyframes fadeOut { from { opacity:1; } to { opacity:0; } }
 
 </style>
 </head>
@@ -483,13 +485,35 @@
 
     <!-- Team Management Tab -->
     <div id="tab-team" style="display:none;">
-      <div class="card">
-        <h3 style="margin-top:0;">Team Management</h3>
-        <p style="color:var(--sub);font-size:14px;margin-bottom:20px;">Add new students or activate/deactivate existing ones. Deactivated students won't appear in dropdowns or the schedule unless they have past shifts, ensuring no data is ever erased.</p>
-        <div style="display:flex; gap:10px; margin-bottom: 24px;">
-          <input type="text" id="newStudentName" placeholder="Enter full name" style="flex:1; padding:8px; border:1px solid var(--line); border-radius:4px;">
-          <button class="btn" onclick="addNewStudent()">Add Student</button>
+      <div class="card" style="margin-bottom:16px;">
+        <h3 style="margin-top:0;">➕ Add New Student</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--sub);display:block;margin-bottom:4px;">First Name *</label>
+            <input type="text" id="newStudentFirst" placeholder="e.g. John" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--sub);display:block;margin-bottom:4px;">Last Name *</label>
+            <input type="text" id="newStudentLast" placeholder="e.g. Doe" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--sub);display:block;margin-bottom:4px;">📞 Contact Number</label>
+            <input type="tel" id="newStudentPhone" placeholder="e.g. +1 201-555-0123" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--sub);display:block;margin-bottom:4px;">✉️ Stevens Email</label>
+            <input type="email" id="newStudentEmail" placeholder="e.g. jdoe@stevens.edu" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;">
+          </div>
+          <div style="grid-column:1/-1;">
+            <label style="font-size:12px;font-weight:600;color:var(--sub);display:block;margin-bottom:4px;">🎓 Major / Program</label>
+            <input type="text" id="newStudentMajor" placeholder="e.g. Computer Science (MS)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;">
+          </div>
         </div>
+        <button class="btn" onclick="addNewStudent()" style="width:100%;">Add Student</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">👥 Current Roster</h3>
+        <p style="color:var(--sub);font-size:13px;margin-bottom:16px;">Click <strong>Edit</strong> on any student to update their contact details. Deactivating removes them from new assignments but preserves all historical data.</p>
         <div id="teamRosterContainer"></div>
       </div>
     </div>
@@ -624,6 +648,35 @@ function showToast(message, type = 'success', duration = 3500) {
     toast.style.animation = 'toastOut 0.3s ease forwards';
     setTimeout(() => toast.remove(), 300);
   }, duration);
+}
+
+function showAlert(message, type = 'error') {
+  const root = document.getElementById('modalRoot');
+  const iconMap = {
+    error:   { emoji: '⚠️', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', btn: '#dc2626', btnHover: '#b91c1c' },
+    success: { emoji: '✅', color: '#059669', bg: '#f0fdf4', border: '#bbf7d0', btn: '#059669', btnHover: '#047857' },
+    info:    { emoji: 'ℹ️', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', btn: '#2563eb', btnHover: '#1d4ed8' },
+    warning: { emoji: '⚠️', color: '#d97706', bg: '#fffbeb', border: '#fde68a', btn: '#d97706', btnHover: '#b45309' }
+  };
+  const cfg = iconMap[type] || iconMap.error;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.15s ease;`;
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:32px 28px;max-width:400px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,0.2);font-family:'Inter','Segoe UI',sans-serif;text-align:center;animation:slideUp 0.2s ease;">
+      <div style="width:56px;height:56px;border-radius:50%;background:${cfg.bg};border:2px solid ${cfg.border};display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;">
+        ${cfg.emoji}
+      </div>
+      <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;font-weight:500;">${message}</p>
+      <button id="alertOkBtn" style="background:${cfg.btn};color:#fff;border:none;border-radius:8px;padding:10px 32px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s;"
+        onmouseover="this.style.background='${cfg.btnHover}'" onmouseout="this.style.background='${cfg.btn}'">
+        OK
+      </button>
+    </div>
+  `;
+  root.appendChild(overlay);
+  const close = () => { overlay.style.animation = 'fadeOut 0.15s ease forwards'; setTimeout(() => overlay.remove(), 150); };
+  overlay.querySelector('#alertOkBtn').onclick = close;
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 }
 
 // --- Configuration ---
@@ -791,7 +844,7 @@ function setupAuthListeners() {
     if (role === 'professor') {
       const pwd = document.getElementById('profPassword').value;
       if (pwd !== 'admin') {
-        alert('Incorrect password');
+        showAlert('Incorrect password', 'error');
         return;
       }
       state.userRole = 'professor';
@@ -1309,12 +1362,12 @@ function openShiftModal(student, dayOfWeek, dateStr, existing) {
     
     if (overlapsArr.length > 0) {
       if (!document.getElementById('mOverrideCheck').checked) {
-        alert("Cannot save: Conflict exists and Override is not checked.");
+        showAlert('Cannot save: a conflict exists and Override is not checked.', 'warning');
         return;
       }
       overrideReason = document.getElementById('mOverrideReason').value.trim();
       if (!overrideReason) {
-        alert("Please provide a reason or proof for overriding this conflict.");
+        showAlert('Please provide a reason or proof for overriding this conflict.', 'warning');
         return;
       }
     }
@@ -1874,21 +1927,29 @@ init();
 
 
 window.addNewStudent = function() {
-  const input = document.getElementById('newStudentName');
-  const name = input.value.trim();
-  if (!name) return;
+  const first = (document.getElementById('newStudentFirst') || {}).value || '';
+  const last  = (document.getElementById('newStudentLast')  || {}).value || '';
+  if (!first.trim() || !last.trim()) { showAlert('Please enter both first and last name.', 'warning'); return; }
+  const name = first.trim() + ' ' + last.trim();
+  if (!state.data.studentProfiles) state.data.studentProfiles = {};
   if (state.data.students.includes(name)) {
     if (state.data.inactiveStudents.includes(name)) {
       toggleStudentActive(name);
-      input.value = '';
     } else {
-      alert('Student already exists and is active.');
+      showAlert('A student with this name already exists and is active.', 'info');
     }
-    return;
+  } else {
+    state.data.students.push(name);
   }
-  state.data.students.push(name);
+  state.data.studentProfiles[name] = {
+    phone: (document.getElementById('newStudentPhone') || {}).value || '',
+    email: (document.getElementById('newStudentEmail') || {}).value || '',
+    major: (document.getElementById('newStudentMajor') || {}).value || ''
+  };
   saveData();
-  input.value = '';
+  ['newStudentFirst','newStudentLast','newStudentPhone','newStudentEmail','newStudentMajor'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   populateStudentSelects();
   renderAll();
 };
@@ -1908,16 +1969,48 @@ function renderTeamTab() {
   if (state.userRole !== 'professor') return;
   const container = document.getElementById('teamRosterContainer');
   if (!container) return;
-  
-  let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  if (!state.data.studentProfiles) state.data.studentProfiles = {};
+
+  let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
   state.data.students.slice().sort().forEach(st => {
     const isActive = !state.data.inactiveStudents.includes(st);
+    const profile = state.data.studentProfiles[st] || {};
+    const safeId = st.replace(/[^a-z0-9]/gi,'_');
     html += `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--card);border-radius:6px;border:1px solid var(--line);">
-        <span style="font-weight:500;color:${isActive ? 'var(--ink)' : 'var(--sub)'}">${st} ${isActive ? '' : '(Inactive)'}</span>
-        <button class="btn small ${isActive ? 'danger' : 'secondary'}" onclick="toggleStudentActive('${st.replace(/'/g, "\\'")}')">
-          ${isActive ? 'Deactivate' : 'Activate'}
-        </button>
+      <div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:${isActive ? 'var(--card)' : '#f9fafb'};">
+          <div>
+            <div style="font-weight:600;font-size:15px;color:${isActive ? 'var(--ink)' : 'var(--sub)'}">${st}${isActive ? '' : ' <span style="font-size:11px;">(Inactive)</span>'}</div>
+            ${profile.email ? `<div style="font-size:12px;color:var(--sub);margin-top:2px;">✉️ ${profile.email}</div>` : ''}
+            ${profile.major ? `<div style="font-size:12px;color:var(--sub);">🎓 ${profile.major}</div>` : ''}
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn small secondary" onclick="toggleTeamDetail('${safeId}')">Edit</button>
+            <button class="btn small ${isActive ? 'danger' : 'secondary'}" onclick="toggleStudentActive('${st.replace(/'/g, "\\'")}')">${isActive ? 'Deactivate' : 'Activate'}</button>
+          </div>
+        </div>
+        <div id="detail_${safeId}" style="display:none;padding:12px 16px;border-top:1px solid var(--line);background:#f9fafb;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:3px;">📞 Contact No.</label>
+              <input type="tel" id="phone_${safeId}" value="${profile.phone||''}" placeholder="+1 201-555-0000"
+                style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:4px;font-size:13px;"
+                onchange="saveProfile('${st.replace(/'/g, "\\'")}')">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:3px;">✉️ Stevens Email</label>
+              <input type="email" id="email_${safeId}" value="${profile.email||''}" placeholder="jdoe@stevens.edu"
+                style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:4px;font-size:13px;"
+                onchange="saveProfile('${st.replace(/'/g, "\\'")}')">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:3px;">🎓 Major / Program</label>
+              <input type="text" id="major_${safeId}" value="${profile.major||''}" placeholder="e.g. Computer Science (MS)"
+                style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:4px;font-size:13px;"
+                onchange="saveProfile('${st.replace(/'/g, "\\'")}')">
+            </div>
+          </div>
+        </div>
       </div>
     `;
   });
