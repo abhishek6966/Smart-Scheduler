@@ -1408,6 +1408,8 @@ function openSwapRequestModal() {
   const weekShifts = state.data.shifts[state.currentWeekStartStr] || [];
   const myShifts = weekShifts.filter(s => s.student === me);
   const daysArr = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const typeColors = { regular:'#1f2937', training:'#854d0e', event:'#1e3a8a', closed:'#991b1b' };
+  const typeIcons  = { regular:'📋', training:'📚', event:'🎯', closed:'🔒' };
 
   if (myShifts.length === 0) {
     showToast('You have no shifts scheduled this week to swap.', 'info');
@@ -1420,19 +1422,28 @@ function openSwapRequestModal() {
     return `<option value="${escAttr(s.id)}">${label}</option>`;
   }).join('');
 
+  let currentMode = 'cover'; // 'cover' | 'exchange'
+
   root.innerHTML = `
   <div class="modal-backdrop" id="swapBackdrop">
-    <div class="modal" style="width:540px;">
+    <div class="modal" style="width:560px;">
+      <!-- Header -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line);">
         <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;">🔄</div>
         <div>
           <div style="font-size:17px;font-weight:700;color:var(--ink);">Request a Shift Swap</div>
-          <div style="font-size:12px;color:var(--sub);margin-top:1px;">Pick a shift and a free classmate to cover it</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:1px;">Cover: someone free takes your shift &nbsp;·&nbsp; Exchange: trade slots with a classmate</div>
         </div>
       </div>
 
+      <!-- Mode Toggle -->
+      <div style="display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:16px;">
+        <button id="modeCover" style="flex:1;padding:10px;border:none;background:#2563eb;color:#fff;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">📤 Cover My Shift</button>
+        <button id="modeExchange" style="flex:1;padding:10px;border:none;background:#f3f4f6;color:var(--sub);font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;">🔁 Exchange Shifts</button>
+      </div>
+
       <div class="field">
-        <label style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Your shift to swap away</label>
+        <label style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Your shift to give away</label>
         <select id="swapShiftSelect" style="font-weight:500;">${shiftOptions}</select>
       </div>
 
@@ -1453,48 +1464,106 @@ function openSwapRequestModal() {
     </div>
   </div>`;
 
-  function refreshAvailable() {
-    const shiftId = document.getElementById('swapShiftSelect').value;
-    const shift = myShifts.find(s => s.id === shiftId);
-    if (!shift) return;
+  function getMyShift() {
+    return myShifts.find(s => s.id === document.getElementById('swapShiftSelect').value);
+  }
+
+  function renderCoverMode() {
+    const shift = getMyShift(); if (!shift) return;
     const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
     const available = STUDENTS.filter(st => st !== me && isStudentFreeForShift(st, dateStr, shift.dayOfWeek, shift.start, shift.end));
     const sec = document.getElementById('swapAvailableSection');
-
-    const typeLabel = TYPES[shift.type]?.label || shift.type;
-    const typeColors = { regular:'#1f2937', training:'#854d0e', event:'#1e3a8a', closed:'#991b1b' };
     sec.innerHTML = `
       <div class="swap-shift-preview">
-        <div class="swap-shift-icon">${{regular:'📋',training:'📚',event:'🎯',closed:'🔒'}[shift.type] || '📋'}</div>
+        <div class="swap-shift-icon">${typeIcons[shift.type] || '📋'}</div>
         <div class="swap-shift-info">
           <strong>${daysArr[shift.dayOfWeek]} ${dateStr} &nbsp;·&nbsp; ${fmt(shift.start)} – ${fmt(shift.end)}</strong>
-          <span style="color:${typeColors[shift.type]||'#374151'};font-weight:600;">${typeLabel}</span>
+          <span style="color:${typeColors[shift.type]||'#374151'};font-weight:600;">${TYPES[shift.type]?.label || shift.type}</span>
         </div>
       </div>
       ${ available.length === 0
-        ? `<div class="conflict-box" style="border-radius:10px;">⚠️ No classmates are free during this entire shift window. Try a different shift.</div>`
-        : `<div style="margin-bottom:8px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Select a classmate to cover (${available.length} available)</div>
-           ${ available.map(st => {
-              const initials = st.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-              return `
-              <label class="peer-option" id="opt_${escAttr(st)}">
-                <input type="radio" name="swapTo" value="${escAttr(st)}">
-                <div class="peer-avatar">${initials}</div>
-                <span class="peer-name">${st}</span>
-                <span class="peer-badge">✓ Free</span>
-              </label>`;
-           }).join('')}
-          `
+          ? `<div class="conflict-box" style="border-radius:10px;">⚠️ No classmates are free during this shift window. Try Exchange mode instead.</div>`
+          : `<div style="margin-bottom:8px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Classmate to cover your shift (${available.length} free)</div>
+             ${ available.map(st => {
+                const ini = st.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+                return `<label class="peer-option">
+                  <input type="radio" name="swapTo" value="${escAttr(st)}">
+                  <div class="peer-avatar">${ini}</div>
+                  <span class="peer-name">${st}</span>
+                  <span class="peer-badge">✓ Free</span>
+                </label>`;
+             }).join('') }
+            `
       }`;
-
-    // Clicking the label toggles selection styling
     sec.querySelectorAll('.peer-option').forEach(lbl => {
-      lbl.addEventListener('click', () => {
-        sec.querySelectorAll('.peer-option').forEach(l => l.classList.remove('selected'));
-        lbl.classList.add('selected');
-      });
+      lbl.addEventListener('click', () => { sec.querySelectorAll('.peer-option').forEach(l=>l.classList.remove('selected')); lbl.classList.add('selected'); });
     });
   }
+
+  function renderExchangeMode() {
+    const myShift = getMyShift(); if (!myShift) return;
+    const myDateStr = toDateStr(addDays(state.currentWeekStartStr, myShift.dayOfWeek));
+    // Find all peers who have at least one shift this week
+    const peers = STUDENTS.filter(st => st !== me && weekShifts.some(s => s.student === st));
+    const sec = document.getElementById('swapAvailableSection');
+
+    sec.innerHTML = `
+      <div class="swap-shift-preview" style="border-color:#e9d5ff;background:#faf5ff;">
+        <div class="swap-shift-icon">${typeIcons[myShift.type] || '📋'}</div>
+        <div class="swap-shift-info">
+          <strong>${daysArr[myShift.dayOfWeek]} ${myDateStr} &nbsp;·&nbsp; ${fmt(myShift.start)} – ${fmt(myShift.end)}</strong>
+          <span style="color:#7c3aed;font-weight:600;">Your shift to trade away</span>
+        </div>
+      </div>
+      ${ peers.length === 0
+          ? `<div class="conflict-box" style="border-radius:10px;">⚠️ No other students have shifts this week to exchange.</div>`
+          : `<div style="margin-bottom:8px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Select a classmate &amp; their shift to exchange with</div>
+             ${ peers.map(st => {
+                const ini = st.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+                const theirShifts = weekShifts.filter(s => s.student === st);
+                return `<div style="border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f9fafb;">
+                    <div class="peer-avatar" style="width:32px;height:32px;font-size:12px;">${ini}</div>
+                    <span style="font-weight:600;font-size:14px;">${st}</span>
+                  </div>
+                  ${ theirShifts.map(ts => {
+                      const tsDate = toDateStr(addDays(state.currentWeekStartStr, ts.dayOfWeek));
+                      return `<label class="peer-option" style="border:none;border-top:1px solid var(--line);border-radius:0;margin:0;">
+                        <input type="radio" name="swapTo" value="${escAttr(st)}" data-toshiftid="${escAttr(ts.id)}">
+                        <div style="flex:1;">
+                          <div style="font-weight:600;font-size:13px;">${daysArr[ts.dayOfWeek]} ${tsDate} · ${fmt(ts.start)} – ${fmt(ts.end)}</div>
+                          <div style="font-size:11px;color:${typeColors[ts.type]||'#374151'};font-weight:600;margin-top:2px;">${typeIcons[ts.type]||'📋'} ${TYPES[ts.type]?.label||ts.type}</div>
+                        </div>
+                        <span class="peer-badge" style="background:#f3e8ff;color:#7c3aed;">🔁 Trade</span>
+                      </label>`;
+                  }).join('') }
+                </div>`;
+             }).join('') }
+            `
+      }`;
+    sec.querySelectorAll('.peer-option').forEach(lbl => {
+      lbl.addEventListener('click', () => { sec.querySelectorAll('.peer-option').forEach(l=>l.classList.remove('selected')); lbl.classList.add('selected'); });
+    });
+  }
+
+  function refreshAvailable() {
+    if (currentMode === 'cover') renderCoverMode();
+    else renderExchangeMode();
+  }
+
+  // Mode toggle handlers
+  document.getElementById('modeCover').addEventListener('click', () => {
+    currentMode = 'cover';
+    document.getElementById('modeCover').style.cssText    = 'flex:1;padding:10px;border:none;background:#2563eb;color:#fff;font-weight:700;font-size:13px;cursor:pointer;';
+    document.getElementById('modeExchange').style.cssText = 'flex:1;padding:10px;border:none;background:#f3f4f6;color:var(--sub);font-weight:600;font-size:13px;cursor:pointer;';
+    refreshAvailable();
+  });
+  document.getElementById('modeExchange').addEventListener('click', () => {
+    currentMode = 'exchange';
+    document.getElementById('modeExchange').style.cssText = 'flex:1;padding:10px;border:none;background:#7c3aed;color:#fff;font-weight:700;font-size:13px;cursor:pointer;';
+    document.getElementById('modeCover').style.cssText    = 'flex:1;padding:10px;border:none;background:#f3f4f6;color:var(--sub);font-weight:600;font-size:13px;cursor:pointer;';
+    refreshAvailable();
+  });
 
   document.getElementById('swapShiftSelect').addEventListener('change', refreshAvailable);
   refreshAvailable();
@@ -1503,40 +1572,50 @@ function openSwapRequestModal() {
   document.getElementById('swapBackdrop').addEventListener('click', e => { if (e.target.id === 'swapBackdrop') root.innerHTML = ''; });
 
   document.getElementById('swapSubmitBtn').onclick = () => {
-    const shiftId = document.getElementById('swapShiftSelect').value;
-    const shift = myShifts.find(s => s.id === shiftId);
+    const shift = getMyShift();
     const toStudentEl = document.querySelector('input[name="swapTo"]:checked');
     const reason = document.getElementById('swapReason').value.trim();
 
-    if (!shift) { showToast('Please select a shift.', 'error'); return; }
-    if (!toStudentEl) { showToast('Please select a classmate to swap with.', 'error'); return; }
+    if (!shift) { showToast('Please select your shift.', 'error'); return; }
+    if (!toStudentEl) { showToast('Please select a classmate.', 'error'); return; }
 
     const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
-    state.data.swapRequests.push({
+    const req = {
       id: 'swap_' + Date.now(),
+      swapType: currentMode,          // 'cover' | 'exchange'
       fromStudent: me,
       toStudent: toStudentEl.value,
       weekStr: state.currentWeekStartStr,
       shiftId: shift.id,
-      dateStr,
-      dayOfWeek: shift.dayOfWeek,
-      start: shift.start,
-      end: shift.end,
-      type: shift.type,
-      reason,
-      status: 'pending',
+      dateStr, dayOfWeek: shift.dayOfWeek,
+      start: shift.start, end: shift.end, type: shift.type,
+      reason, status: 'pending',
       createdAt: new Date().toISOString()
-    });
-    saveData();
-    root.innerHTML = '';
-    renderSwaps();
-    // Switch to swaps tab
+    };
+
+    if (currentMode === 'exchange') {
+      const toShiftId = toStudentEl.dataset.toshiftid;
+      const toShift = weekShifts.find(s => s.id === toShiftId);
+      if (!toShift) { showToast('Please select which shift to exchange.', 'error'); return; }
+      req.toShiftId    = toShift.id;
+      req.toDateStr    = toDateStr(addDays(state.currentWeekStartStr, toShift.dayOfWeek));
+      req.toDayOfWeek  = toShift.dayOfWeek;
+      req.toStart      = toShift.start;
+      req.toEnd        = toShift.end;
+      req.toType       = toShift.type;
+    }
+
+    state.data.swapRequests.push(req);
+    saveData(); root.innerHTML = ''; renderSwaps();
     document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
     document.querySelector('[data-tab="swaps"]').classList.add('active');
     ['schedule','availability','swaps','conflicts'].forEach(t => {
       document.getElementById('tab-' + t).style.display = t === 'swaps' ? 'block' : 'none';
     });
-    showToast('Swap request submitted! Waiting for professor approval.', 'success');
+    const msg = currentMode === 'exchange'
+      ? `Exchange request sent to ${req.toStudent}! Waiting for professor approval.`
+      : `Cover request sent to ${req.toStudent}! Waiting for professor approval.`;
+    showToast(msg, 'success');
   };
 }
 
@@ -1560,6 +1639,7 @@ function renderSwaps() {
   }
 
   list.innerHTML = visible.map(r => {
+    const isExchange = r.swapType === 'exchange';
     const statusClass = r.status;
     const statusLabel = { pending: '⏳ Pending', approved: '✅ Approved', denied: '❌ Denied' }[r.status] || r.status;
     const fromInitials = r.fromStudent.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -1568,34 +1648,51 @@ function renderSwaps() {
       ? `<span style="font-size:11px;background:#f3f4f6;padding:2px 8px;border-radius:10px;color:var(--sub);">You sent</span>`
       : `<span style="font-size:11px;background:#eff6ff;padding:2px 8px;border-radius:10px;color:var(--primary);font-weight:600;">Incoming request</span>`);
     const typeIcon = {regular:'📋',training:'📚',event:'🎯',closed:'🔒'}[r.type] || '📋';
+    const modeTag = isExchange
+      ? `<span style="font-size:11px;background:#f3e8ff;color:#7c3aed;font-weight:700;padding:2px 8px;border-radius:10px;">🔁 Exchange</span>`
+      : `<span style="font-size:11px;background:#eff6ff;color:#1d4ed8;font-weight:700;padding:2px 8px;border-radius:10px;">📤 Cover</span>`;
+    const daysArr2 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    const shiftDetails = isExchange
+      ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+           <div style="flex:1;background:#f8faff;border:1px solid #dbeafe;border-radius:8px;padding:8px 12px;">
+             <div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:2px;">FROM</div>
+             <div style="font-weight:600;font-size:13px;">${daysArr2[r.dayOfWeek]}, ${r.dateStr}</div>
+             <div style="font-size:12px;">${fmt(r.start)} – ${fmt(r.end)}</div>
+           </div>
+           <div style="font-size:20px;color:var(--sub);">⇄</div>
+           <div style="flex:1;background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:8px 12px;">
+             <div style="font-size:11px;color:#7c3aed;font-weight:600;margin-bottom:2px;">TO</div>
+             <div style="font-weight:600;font-size:13px;">${daysArr2[r.toDayOfWeek]}, ${r.toDateStr}</div>
+             <div style="font-size:12px;">${fmt(r.toStart)} – ${fmt(r.toEnd)}</div>
+           </div>
+         </div>`
+      : `<div class="swap-participants">
+           <span class="swap-person-pill"><span class="mini-avatar">${fromInitials}</span>${r.fromStudent}</span>
+           <span class="swap-arrow">→</span>
+           <span class="swap-person-pill"><span class="mini-avatar">${toInitials}</span>${r.toStudent}</span>
+           ${dirTag}
+         </div>`;
+
     const approveBtn = isProfessor && r.status === 'pending'
       ? `<div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
-           <button class="btn small" style="background:var(--success);flex:1;" onclick="approveSwap('${r.id}')">✅ Approve & Apply Swap</button>
+           <button class="btn small" style="background:var(--success);flex:1;" onclick="approveSwap('${r.id}')">✅ Approve &amp; Apply</button>
            <button class="btn danger small" style="flex:1;" onclick="denySwap('${r.id}')">❌ Deny</button>
          </div>` : '';
 
     return `
     <div class="swap-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
         <div style="flex:1;">
-          <div class="swap-title">${typeIcon} ${daysArr[r.dayOfWeek]}, ${r.dateStr} &nbsp;·&nbsp; ${fmt(r.start)} – ${fmt(r.end)}</div>
-          <div class="swap-meta" style="margin-bottom:10px;">${TYPES[r.type]?.label || r.type}</div>
-          <div class="swap-participants">
-            <span class="swap-person-pill">
-              <span class="mini-avatar">${fromInitials}</span>
-              ${r.fromStudent}
-            </span>
-            <span class="swap-arrow">→</span>
-            <span class="swap-person-pill">
-              <span class="mini-avatar">${toInitials}</span>
-              ${r.toStudent}
-            </span>
-            ${dirTag}
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span class="swap-title" style="margin:0;">${typeIcon} ${isExchange ? r.fromStudent + ' ⇄ ' + r.toStudent : r.fromStudent + ' → ' + r.toStudent}</span>
           </div>
-          ${r.reason ? `<div style="margin-top:8px;font-size:13px;color:var(--sub);">💬 "${r.reason}"</div>` : ''}
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${modeTag}${dirTag}</div>
         </div>
         <span class="swap-status ${statusClass}">${statusLabel}</span>
       </div>
+      ${shiftDetails}
+      ${r.reason ? `<div style="margin-top:8px;font-size:13px;color:var(--sub);">💬 "${r.reason}"</div>` : ''}
       ${approveBtn}
     </div>`;
   }).join('');
@@ -1627,14 +1724,28 @@ window.approveSwap = function(id) {
   document.getElementById('confirmCancel').onclick = () => confirmRoot.innerHTML = '';
   document.getElementById('confirmOk').onclick = () => {
     confirmRoot.innerHTML = '';
+    const isExchange = req.swapType === 'exchange';
     const weekShifts = state.data.shifts[req.weekStr];
     if (weekShifts) {
       const shift = weekShifts.find(s => s.id === req.shiftId);
-      if (shift) shift.student = req.toStudent;
+      if (isExchange && req.toShiftId) {
+        const toShift = weekShifts.find(s => s.id === req.toShiftId);
+        if (shift && toShift) {
+          // Swap both students on each other's shifts
+          shift.student   = req.toStudent;
+          toShift.student = req.fromStudent;
+        }
+      } else {
+        // Cover: just transfer the one shift
+        if (shift) shift.student = req.toStudent;
+      }
     }
     req.status = 'approved';
     saveData(); renderAll(); renderSwaps();
-    showToast(`Swap approved! Shift moved to ${req.toStudent}.`, 'success');
+    const msg = req.swapType === 'exchange'
+      ? `Exchange approved! Shifts swapped between ${req.fromStudent} and ${req.toStudent}.`
+      : `Cover approved! Shift moved to ${req.toStudent}.`;
+    showToast(msg, 'success');
   };
 };
 
