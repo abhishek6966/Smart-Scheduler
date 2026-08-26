@@ -429,6 +429,13 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
     h1 {
       font-size: 24px;
       font-weight: 700;
@@ -1151,6 +1158,9 @@
         width: 100%;
         align-items: flex-start;
       }
+      .header-right {
+        align-items: flex-start;
+      }
 
       h1 { font-size: 20px; margin-bottom: 4px; }
 
@@ -1164,19 +1174,17 @@
       #syncStatusPill { width: auto; justify-content: flex-start; }
 
       nav.tabs {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        flex-wrap: wrap;
+        justify-content: center;
         padding-bottom: 4px;
         gap: 6px;
       }
       nav.tabs::-webkit-scrollbar { display: none; }
       nav.tabs button {
-        white-space: nowrap;
-        flex-shrink: 0;
+        flex: 1 1 auto;
         padding: 8px 14px;
         font-size: 13px;
+        text-align: center;
       }
 
       .toolbar {
@@ -1217,6 +1225,9 @@
       header > div:last-child {
         align-items: center;
         gap: 12px;
+      }
+      .header-right {
+        align-items: center;
       }
       h1 { font-size: 18px; margin-bottom: 0; }
 
@@ -1431,7 +1442,7 @@
               style="font-weight: 600; color: var(--ink);"></span> <button class="btn secondary small" id="logoutBtn"
               style="margin-left: 8px;">Logout</button></div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div class="header-right">
           <!-- Sync Status Pill -->
           <div id="syncStatusPill" style="
             display:inline-flex;align-items:center;gap:6px;
