@@ -1486,8 +1486,9 @@
         max-height: 92vh;
       }
       .modal h3 { font-size: 16px; margin-bottom: 14px; }
-      .modal-actions { flex-direction: column; gap: 8px; }
-      .modal-actions button { width: 100%; }
+      .modal-actions { flex-direction: column; gap: 8px; width: 100%; }
+      .modal-actions > div { display: flex; flex-direction: column; width: 100%; gap: 8px; }
+      .modal-actions button { width: 100%; margin: 0; }
       .row2 { flex-direction: column; gap: 8px; }
 
       /* ── Swap Banner ─────────────────────────── */
@@ -2834,47 +2835,59 @@
     // --- Modals ---
 
     function openShiftModal(student, dayOfWeek, dateStr, existing) {
-      const root = document.getElementById('modalRoot');
+      const isPast = dateStr < toDateStr(new Date());
       const isEdit = !!existing;
+
+      if (isPast && !isEdit) {
+        showToast('Cannot schedule shifts in the past.', 'error');
+        return;
+      }
+
+      const root = document.getElementById('modalRoot');
+      const dis = isPast ? 'disabled' : '';
 
       root.innerHTML = `
   <div class="modal-backdrop" id="backdrop">
     <div class="modal">
-      <h3>${isEdit ? 'Edit' : 'Add'} Shift - ${student}</h3>
+      <h3>${isPast ? 'View' : (isEdit ? 'Edit' : 'Add')} Shift - ${student}</h3>
       <p style="color:var(--sub); font-size: 12px; margin-top: -16px; margin-bottom: 16px;">${dateStr}</p>
       
       <div id="smartSuggestBox" style="display:none;"></div>
       <div id="conflictWarningBox" style="display:none;"></div>
       
       <div class="row2">
-        <div class="field"><label>Start</label><input type="time" id="mStart" value="${existing ? existing.start : '09:00'}"></div>
-        <div class="field"><label>End</label><input type="time" id="mEnd" value="${existing ? existing.end : '12:00'}"></div>
+        <div class="field"><label>Start</label><input type="time" id="mStart" value="${existing ? existing.start : '09:00'}" ${dis}></div>
+        <div class="field"><label>End</label><input type="time" id="mEnd" value="${existing ? existing.end : '12:00'}" ${dis}></div>
       </div>
       
       <div class="field"><label>Type</label>
-        <select id="mType">
+        <select id="mType" ${dis}>
           ${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${existing && existing.type === k ? 'selected' : ''}>${v.label}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Location (Optional)</label><input type="text" id="mLoc" value="${existing && existing.location ? existing.location : ''}"></div>
+      <div class="field"><label>Location (Optional)</label><input type="text" id="mLoc" value="${existing && existing.location ? existing.location : ''}" ${dis}></div>
       
       <div id="overrideSection" style="display:none; background: #fffbeb; padding: 12px; border: 1px solid #fde68a; border-radius: 6px; margin-bottom: 16px;">
         <label style="font-weight:bold; color: #b45309; font-size: 12px; display:flex; align-items:center; gap: 8px;">
-          <input type="checkbox" id="mOverrideCheck" ${existing && existing.overrideReason ? 'checked' : ''}> Force Assign (Override Conflict)
+          <input type="checkbox" id="mOverrideCheck" ${existing && existing.overrideReason ? 'checked' : ''} ${dis}> Force Assign (Override Conflict)
         </label>
         <div id="overrideReasonWrapper" style="display: ${existing && existing.overrideReason ? 'block' : 'none'}; margin-top: 8px;">
-          <input type="text" id="mOverrideReason" placeholder="Reason / Proof of agreement" value="${existing && existing.overrideReason ? existing.overrideReason : ''}" style="width: 100%; padding: 6px; font-size: 12px;">
+          <input type="text" id="mOverrideReason" placeholder="Reason / Proof of agreement" value="${existing && existing.overrideReason ? existing.overrideReason : ''}" style="width: 100%; padding: 6px; font-size: 12px;" ${dis}>
         </div>
       </div>
       
       <div class="modal-actions">
-        <div>
-          ${isEdit ? '<button class="btn danger" id="mDelete">Remove</button>' : '<button class="btn secondary" id="mSuggestBtn">Smart Suggest</button>'}
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn secondary" id="mCancel">Cancel</button>
-          <button class="btn" id="mSave">${isEdit ? 'Save' : 'Add'}</button>
-        </div>
+        ${isPast ? `
+          <button class="btn secondary" id="mCancel" style="width:100%;">Close</button>
+        ` : `
+          <div>
+            ${isEdit ? '<button class="btn danger" id="mDelete">Remove</button>' : '<button class="btn secondary" id="mSuggestBtn">Smart Suggest</button>'}
+          </div>
+          <div style="display:flex; gap:8px;" class="modal-action-row">
+            <button class="btn secondary" id="mCancel" style="flex:1;">Cancel</button>
+            <button class="btn" id="mSave" style="flex:1;">${isEdit ? 'Save' : 'Add'}</button>
+          </div>
+        `}
       </div>
     </div>
   </div>`;
