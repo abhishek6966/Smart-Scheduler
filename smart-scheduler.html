@@ -1067,7 +1067,7 @@ function renderSchedule() {
   });
   
   // Calculate and add Daily Totals footer
-  html += '</tbody><tfoot><tr><td>Daily total</td>';
+  html += '</tbody><tfoot><tr><td colspan="2" style="font-weight:600; text-align:right;">Daily total</td>';
   let grandTotal = 0;
   for (let i = 0; i < 7; i++) {
     const dayTotal = weekShifts.filter(s => s.dayOfWeek === i).reduce((sum, s) => sum + duration(s.start, s.end), 0);
