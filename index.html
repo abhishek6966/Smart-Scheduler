@@ -3998,7 +3998,34 @@
     // ── Global modal close helper ───────────────────────────────────
     window.closeModal = function() {
       document.getElementById('modalRoot').innerHTML = '';
+      unlockScroll();
     };
+
+    // ── Body Scroll Lock ────────────────────────────────────────────
+    let _scrollY = 0;
+    function lockScroll() {
+      _scrollY = window.scrollY;
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${_scrollY}px`;
+      document.body.style.width = '100%';
+    }
+    function unlockScroll() {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, _scrollY);
+    }
+    // Watch #modalRoot — lock scroll when modal injected, unlock when cleared
+    (function() {
+      const mr = document.getElementById('modalRoot');
+      if (!mr) return;
+      new MutationObserver(() => {
+        if (mr.children.length > 0) lockScroll();
+        else unlockScroll();
+      }).observe(mr, { childList: true });
+    })();
 
     // ── Special Day Modal ───────────────────────────────────────────────────
     window.openDayTypeModal = function(dateStr, label) {
