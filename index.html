@@ -53,8 +53,7 @@
     #authScreen {
       position: fixed;
       inset: 0;
-      /* Using a semi-transparent gradient over the image to keep the login text readable */
-      background: linear-gradient(rgba(30, 58, 95, 0.8), rgba(37, 99, 235, 0.6)), url('bg.jpg');
+      background: url('bg.jpg');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -66,83 +65,6 @@
       overflow: hidden;
     }
 
-    #authScreen::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse at 20% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.3) 0%, transparent 50%);
-      pointer-events: none;
-    }
-
-    .auth-floating-circles {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-    }
-
-    .auth-floating-circles span {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
-      animation: floatUp 12s infinite linear;
-    }
-
-    .auth-floating-circles span:nth-child(1) {
-      width: 80px;
-      height: 80px;
-      left: 10%;
-      animation-delay: 0s;
-    }
-
-    .auth-floating-circles span:nth-child(2) {
-      width: 120px;
-      height: 120px;
-      left: 30%;
-      animation-delay: 3s;
-    }
-
-    .auth-floating-circles span:nth-child(3) {
-      width: 60px;
-      height: 60px;
-      left: 60%;
-      animation-delay: 6s;
-    }
-
-    .auth-floating-circles span:nth-child(4) {
-      width: 100px;
-      height: 100px;
-      left: 80%;
-      animation-delay: 1.5s;
-    }
-
-    .auth-floating-circles span:nth-child(5) {
-      width: 50px;
-      height: 50px;
-      left: 50%;
-      animation-delay: 8s;
-    }
-
-    @keyframes floatUp {
-      0% {
-        transform: translateY(110vh) scale(0.5);
-        opacity: 0;
-      }
-
-      10% {
-        opacity: 1;
-      }
-
-      90% {
-        opacity: 0.5;
-      }
-
-      100% {
-        transform: translateY(-20vh) scale(1.2);
-        opacity: 0;
-      }
-    }
 
     .auth-card {
       background: rgba(255, 255, 255, 0.12);
@@ -217,10 +139,11 @@
     .auth-card input {
       width: 100%;
       padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.1);
+      background: #ffffff;
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
-      color: #ffffff;
+      color: #2563eb;
+      font-weight: 500;
       font-size: 15px;
       font-family: inherit;
       outline: none;
@@ -229,13 +152,13 @@
 
     .auth-card select option {
       background: #ffffff;
-      color: #111827;
+      color: #2563eb;
     }
 
     .auth-card select:focus,
     .auth-card input:focus {
-      border-color: rgba(255, 255, 255, 0.5);
-      background: rgba(255, 255, 255, 0.15);
+      border-color: #2563eb;
+      background: #ffffff;
     }
 
     .auth-card input::placeholder {
@@ -251,8 +174,8 @@
     .auth-btn {
       width: 100%;
       padding: 14px;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      color: white;
+      background: #ffffff;
+      color: #2563eb;
       border: none;
       border-radius: 12px;
       cursor: pointer;
@@ -1006,9 +929,6 @@
 <body>
 
   <div id="authScreen">
-    <div class="auth-floating-circles">
-      <span></span><span></span><span></span><span></span><span></span>
-    </div>
     <div class="auth-card">
       <div class="auth-logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
