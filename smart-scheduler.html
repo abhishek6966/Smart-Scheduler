@@ -1624,9 +1624,9 @@ function openSwapRequestModal() {
     overlay.innerHTML = `
       <div class="modal" style="width:400px;text-align:center;">
         <div style="font-size:32px;margin-bottom:12px;color:var(--primary);"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
-        <div style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--ink);">Confirm \${currentMode === 'cover' ? 'Cover' : 'Exchange'} Request</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--ink);">Confirm ${currentMode === 'cover' ? 'Cover' : 'Exchange'} Request</div>
         <p style="color:var(--sub);font-size:14px;margin:0 0 20px;">
-          Send this \${currentMode} request to <strong>\${toStudentEl.value}</strong>?
+          Send this ${currentMode} request to <strong>${toStudentEl.value}</strong>?
         </p>
         <div style="text-align:left; margin-bottom: 24px;">
           <label style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);display:block;margin-bottom:6px;">Reason (optional)</label>
