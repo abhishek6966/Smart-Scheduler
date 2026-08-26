@@ -1126,6 +1126,12 @@
       padding: 20px 24px;
     }
 
+    .special-days-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
     /* Availability Banner Header */
     .avail-card-wrapper {
       padding: 0;
@@ -1443,9 +1449,9 @@
       .card { padding: 16px; border-radius: 10px; margin-bottom: 16px; }
 
       /* ── Manage Availability ─────────────────── */
-      .manage-avail-grid {
+      .manage-avail-grid, .special-days-grid {
         grid-template-columns: 1fr;
-        gap: 32px;
+        gap: 24px;
       }
 
       /* ── Schedule table — stays scrollable ───── */
@@ -3808,7 +3814,7 @@
           <button class="btn secondary small" onclick="resetSpecialDayConfig()" style="background:transparent;border:1px solid var(--line);color:var(--sub);">Reset Colors</button>
         </div>
         
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px;">
+        <div class="special-days-grid" style="padding:20px;">
           
           <!-- Colors -->
           <div>
