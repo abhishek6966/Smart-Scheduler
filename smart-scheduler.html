@@ -570,8 +570,8 @@ let state = {
 };
 
 // --- Initialization ---
-function init() {
-  loadData();
+async function init() {
+  await loadData(); // MUST await so state.data.students is populated before UI renders
   setupAuthListeners();
   setupAppListeners();
   
@@ -881,6 +881,12 @@ function setupAuthListeners() {
 }
 
 function populateStudentSelects() {
+  // Safety fallback: always ensure students list exists
+  if (!state.data.students || state.data.students.length === 0) {
+    state.data.students = [...STUDENTS];
+  }
+  if (!state.data.inactiveStudents) state.data.inactiveStudents = [];
+
   const activeStudents = state.data.students.filter(s => !state.data.inactiveStudents.includes(s));
   const options = activeStudents.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
   document.getElementById('studentSelect').innerHTML = options;
