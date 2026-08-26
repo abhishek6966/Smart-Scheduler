@@ -1206,11 +1206,23 @@
               style="font-weight: 600; color: var(--ink);"></span> <button class="btn secondary small" id="logoutBtn"
               style="margin-left: 8px;">Logout</button></div>
         </div>
-        <div class="week-nav">
-          <button id="prevWeekBtn">&larr; Prev Week</button>
-          <span id="currentWeekDisplay">Week of Aug 24, 2026</span>
-          <button id="nextWeekBtn">Next Week &rarr;</button>
-          <button class="btn secondary" id="todayBtn">Today</button>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <!-- Sync Status Pill -->
+          <div id="syncStatusPill" style="
+            display:inline-flex;align-items:center;gap:6px;
+            padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;
+            letter-spacing:0.3px;transition:all 0.3s ease;
+            background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;
+          ">
+            <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:#94a3b8;flex-shrink:0;"></span>
+            <span id="syncLabel">Ready</span>
+          </div>
+          <div class="week-nav">
+            <button id="prevWeekBtn">&larr; Prev Week</button>
+            <span id="currentWeekDisplay">Week of Aug 24, 2026</span>
+            <button id="nextWeekBtn">Next Week &rarr;</button>
+            <button class="btn secondary" id="todayBtn">Today</button>
+          </div>
         </div>
       </header>
 
@@ -1371,6 +1383,46 @@
     const STORAGE_KEY = 'smart-scheduler-v2';
     const MS_PER_DAY = 24 * 60 * 60 * 1000;
     const MS_PER_WEEK = 7 * MS_PER_DAY;
+
+    // ── Sync Status System ────────────────────────────────────────────────────
+    let _pendingSync = false; // true when changes were made while offline
+    let _syncTimeout = null;
+
+    function setSyncStatus(status) {
+      const pill  = document.getElementById('syncStatusPill');
+      const dot   = document.getElementById('syncDot');
+      const label = document.getElementById('syncLabel');
+      if (!pill || !dot || !label) return;
+
+      // Remove spin animation class first
+      dot.style.animation = '';
+
+      const states = {
+        ready:    { bg: '#f1f5f9', color: '#64748b', border: '#e2e8f0', dotColor: '#94a3b8', text: 'Ready',          spin: false },
+        offline:  { bg: '#fef3c7', color: '#92400e', border: '#fde68a', dotColor: '#f59e0b', text: '⚡ Offline',      spin: false },
+        syncing:  { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', dotColor: '#3b82f6', text: '↻ Syncing...',   spin: true  },
+        synced:   { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0', dotColor: '#22c55e', text: '✓ Synced',       spin: false },
+        local:    { bg: '#f8fafc', color: '#475569', border: '#cbd5e1', dotColor: '#64748b', text: '✓ Saved Locally', spin: false },
+        pending:  { bg: '#fff7ed', color: '#9a3412', border: '#fed7aa', dotColor: '#f97316', text: '⏳ Pending Sync', spin: false },
+      };
+
+      const s = states[status] || states.ready;
+      pill.style.background  = s.bg;
+      pill.style.color       = s.color;
+      pill.style.borderColor = s.border;
+      dot.style.background   = s.dotColor;
+      label.textContent      = s.text;
+
+      if (s.spin) {
+        dot.style.animation = 'syncSpin 1s linear infinite';
+      }
+
+      // Auto-reset to 'ready' after synced/local messages
+      if (_syncTimeout) clearTimeout(_syncTimeout);
+      if (status === 'synced' || status === 'local') {
+        _syncTimeout = setTimeout(() => setSyncStatus('ready'), 4000);
+      }
+    }
 
     // Base configuration
     const STUDENTS = ['Alvaro Izquierdo', 'Naranjan Lal', 'Abhishek Mishra', 'Roshni Patel', 'Nishwa Prajapati', 'Harsith Santhoshkumar', 'Naman Singh', 'Harini Suresh Babu', 'Tamari Vardia', 'Hasti Vekariya', 'Rakesh Venkatesan'];
@@ -1744,34 +1796,54 @@
     }
 
     async function saveData() {
-      const lbl = document.getElementById('currentUserLabel');
-
-      // Always save to localStorage immediately
+      // Always save to localStorage immediately (instant, offline-safe)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
 
       if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
-        if (lbl) {
-          lbl.textContent = (state.userName || '') + ' ✓';
-          setTimeout(() => { if (state.userName) lbl.textContent = state.userName; }, 1500);
-        }
+        setSyncStatus('local');
         return;
       }
 
-      // Try to also sync to Google Sheets in background
+      // If offline, mark as pending and return
+      if (!navigator.onLine) {
+        _pendingSync = true;
+        setSyncStatus('pending');
+        return;
+      }
+
+      // Online — sync to Google Sheets
+      setSyncStatus('syncing');
       try {
         await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(state.data) });
-        if (lbl) {
-          lbl.textContent = (state.userName || '') + ' ✓ Synced';
-          setTimeout(() => { if (state.userName) lbl.textContent = state.userName; }, 1500);
-        }
+        _pendingSync = false;
+        setSyncStatus('synced');
       } catch (e) {
         console.warn('Could not sync to Google Sheets - saved locally.', e.message);
-        if (lbl) {
-          lbl.textContent = (state.userName || '') + ' ✓ Local';
-          setTimeout(() => { if (state.userName) lbl.textContent = state.userName; }, 1500);
-        }
+        _pendingSync = true;
+        setSyncStatus('pending');
       }
     }
+
+    // ── Online / Offline event handlers ──────────────────────────────────────
+    window.addEventListener('offline', () => {
+      setSyncStatus('offline');
+    });
+
+    window.addEventListener('online', async () => {
+      if (_pendingSync) {
+        setSyncStatus('syncing');
+        try {
+          await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(state.data) });
+          _pendingSync = false;
+          setSyncStatus('synced');
+        } catch (e) {
+          console.warn('Online but sync failed, will retry on next save.', e.message);
+          setSyncStatus('pending');
+        }
+      } else {
+        setSyncStatus('ready');
+      }
+    });
 
     // --- Custom Dropdown Logic (Login Page) ---
     function initCustomDropdown(dropdownEl, listEl, labelEl, nativeSelect, onChange) {
