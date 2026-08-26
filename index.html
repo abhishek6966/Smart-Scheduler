@@ -1258,7 +1258,19 @@
 
     // --- Initialization ---
     async function init() {
-      await loadData(); // MUST await so state.data.students is populated before UI renders
+      loadData(); // Sync local load (instant)
+
+      // Restore session if exists BEFORE any async delays to prevent flash
+      const savedRole = sessionStorage.getItem('userRole');
+      const savedName = sessionStorage.getItem('userName');
+      if (savedRole && savedName) {
+        state.userRole = savedRole;
+        state.userName = savedName;
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        applyRolePermissions();
+      }
+
       setupAuthListeners();
       setupAppListeners();
 
@@ -1271,16 +1283,7 @@
 
       populateStudentSelects();
 
-      // Restore session if exists
-      const savedRole = sessionStorage.getItem('userRole');
-      const savedName = sessionStorage.getItem('userName');
       if (savedRole && savedName) {
-        state.userRole = savedRole;
-        state.userName = savedName;
-        document.getElementById('authScreen').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        applyRolePermissions();
-
         // Restore active tab
         const savedTab = sessionStorage.getItem('activeTab');
         if (savedTab) {
@@ -1291,6 +1294,16 @@
         }
         renderAll();
       }
+
+      // Initial network sync
+      syncWithServer();
+
+      // Periodic polling (every 10 seconds) for cross-device sync
+      setInterval(() => {
+        if (document.getElementById('app').style.display !== 'none') {
+          syncWithServer();
+        }
+      }, 10000);
     }
 
     // --- Utils ---
@@ -1420,7 +1433,7 @@
     };
 
     // --- Persistence ---
-    async function loadData() {
+    function loadData() {
       const lbl = document.getElementById('currentUserLabel');
       if (lbl) lbl.textContent = 'Loading...';
 
@@ -1448,7 +1461,10 @@
       if (!state.data.swapRequests) state.data.swapRequests = [];
       if (!state.data.studentProfiles) state.data.studentProfiles = {};
 
-      // 3. Try to sync with Google Sheets in background (non-blocking)
+      if (lbl) lbl.textContent = state.userName || '';
+    }
+
+    async function syncWithServer() {
       if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
         try {
           const controller = new AbortController();
@@ -1460,24 +1476,29 @@
           if (text.trim().startsWith('{')) {
             const data = JSON.parse(text);
             if (data && data.shifts && Object.keys(data.shifts).length > 0) {
-              state.data = data;
-              if (Array.isArray(state.data.shifts)) state.data.shifts = {};
-              // Update local cache
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+              const newDataStr = JSON.stringify(data);
+              const oldDataStr = JSON.stringify(state.data);
+              
+              if (newDataStr !== oldDataStr) {
+                state.data = data;
+                if (Array.isArray(state.data.shifts)) state.data.shifts = {};
+                // Update local cache
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+                
+                // Refresh UI if app is visible
+                if (document.getElementById('app').style.display !== 'none') {
+                  renderAll();
+                }
+              }
             } else if (data && Object.keys(data.shifts || {}).length === 0) {
               // Remote DB is empty, push our local data to it
               saveData();
             }
-          } else {
-            console.warn('Google Sheets backend not accessible - using local data.');
           }
         } catch (e) {
-          console.warn('Could not reach Google Sheets backend - using local data.', e.message);
+          console.warn('Could not reach Google Sheets backend', e.message);
         }
       }
-
-      if (lbl) lbl.textContent = state.userName || '';
-      if (document.getElementById('app').style.display !== 'none') renderAll();
     }
 
     async function saveData() {
