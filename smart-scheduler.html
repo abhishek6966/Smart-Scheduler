@@ -688,7 +688,11 @@ function getShiftsForWeek() {
 
 function getAllUnavailabilityForStudentDay(student, dateStr, dayOfWeek) {
   const oneOffs = state.data.unavailability.filter(u => u.student === student && u.dateStr === dateStr);
-  const recurring = state.data.recurringClasses.filter(r => r.student === student && r.dayOfWeek === dayOfWeek);
+  const recurring = state.data.recurringClasses.filter(r => {
+    if (r.student !== student || r.dayOfWeek !== dayOfWeek) return false;
+    if (r.startDate && dateStr < r.startDate) return false;
+    return true;
+  });
   return [...oneOffs, ...recurring];
 }
 
@@ -841,7 +845,7 @@ function renderAvailability() {
       <div class="list-row">
         <div>
           <div class="list-desc">${daysArr[r.dayOfWeek]}: ${fmt(r.start)} - ${fmt(r.end)}</div>
-          <div class="list-meta">${r.note || 'Class'}</div>
+          <div class="list-meta">${r.note || 'Class'}${r.startDate ? ' (Starts ' + r.startDate + ')' : ''}</div>
         </div>
         <button class="btn danger small" onclick="deleteRecurring('${r.id}')">Delete</button>
       </div>
@@ -1084,7 +1088,8 @@ function openUnavailModal(student, isRecurring) {
     const daysArr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     daysHtml = `<div class="field"><label>Day of Week</label><select id="uDay">
       ${daysArr.map((d,i) => `<option value="${i}">${d}</option>`).join('')}
-    </select></div>`;
+    </select></div>
+    <div class="field"><label>Effective Start Date (Optional)</label><input type="date" id="uStartDate" title="If set, class won't conflict before this date"></div>`;
   } else {
     daysHtml = `<div class="field"><label>Date</label><input type="date" id="uDate" required></div>`;
   }
@@ -1122,7 +1127,8 @@ function openUnavailModal(student, isRecurring) {
     
     if (isRecurring) {
       const dayOfWeek = parseInt(document.getElementById('uDay').value);
-      state.data.recurringClasses.push({ id: 'r_' + Date.now(), student, dayOfWeek, start, end, note });
+      const startDate = document.getElementById('uStartDate').value || undefined;
+      state.data.recurringClasses.push({ id: 'r_' + Date.now(), student, dayOfWeek, startDate, start, end, note });
     } else {
       const dateStr = document.getElementById('uDate').value;
       if (!dateStr) return;
