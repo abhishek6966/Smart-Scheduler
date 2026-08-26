@@ -1771,15 +1771,23 @@
         }
       });
 
-      // Option click
-      listEl.addEventListener('click', (e) => {
+      // Option click (using mousedown to prevent blur issues)
+      listEl.addEventListener('mousedown', (e) => {
         const opt = e.target.closest('.custom-dropdown-option');
         if (!opt) return;
+        
         const val = opt.dataset.value;
-        labelEl.textContent = opt.textContent.replace('✓', '').trim();
+        
+        // Safely get text without the checkmark span
+        const clone = opt.cloneNode(true);
+        const check = clone.querySelector('.opt-check');
+        if (check) check.remove();
+        labelEl.textContent = clone.textContent.trim();
+        
         nativeSelect.value = val;
         listEl.querySelectorAll('.custom-dropdown-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
+        
         // Close
         dropdownEl.classList.remove('open');
         listEl.classList.remove('open');
