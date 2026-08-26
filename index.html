@@ -1128,6 +1128,12 @@
       }
     }
 
+    .manage-avail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
     /* ═══════════════════════════════════════════════════════════════
        RESPONSIVE — TABLET  (≤ 1024px)
     ═══════════════════════════════════════════════════════════════ */
@@ -1154,8 +1160,8 @@
       }
       .week-nav span { font-size: 14px; }
 
-      /* Sync pill full-width on tablet */
-      #syncStatusPill { width: 100%; justify-content: center; }
+      /* Sync pill inline on tablet */
+      #syncStatusPill { width: auto; justify-content: flex-start; }
 
       nav.tabs {
         flex-wrap: nowrap;
@@ -1196,26 +1202,53 @@
       /* ── Header ──────────────────────────────── */
       header {
         border-radius: 10px;
-        padding: 12px 14px;
-        gap: 10px;
-        margin-bottom: 12px;
+        padding: 14px 12px;
+        gap: 12px;
+        margin-bottom: 16px;
+        align-items: center;
+        text-align: center;
       }
-      h1 { font-size: 18px; }
+      header > div:first-child { 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        gap: 6px;
+      }
+      header > div:last-child {
+        align-items: center;
+        gap: 12px;
+      }
+      h1 { font-size: 18px; margin-bottom: 0; }
+
+      .user-info-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 13px !important;
+      }
 
       /* Make logout button smaller on mobile */
-      #logoutBtn { padding: 3px 8px; font-size: 11px; }
+      #logoutBtn { padding: 4px 10px; font-size: 11px; margin-left: 0 !important; }
 
-      .week-nav { gap: 6px; }
-      .week-nav button { padding: 5px 10px; font-size: 12px; }
-      .week-nav span { font-size: 13px; order: -1; width: 100%; text-align: center; }
-      #syncStatusPill { font-size: 10px; padding: 3px 10px; }
+      .week-nav { gap: 8px; justify-content: center; width: 100%; }
+      .week-nav button { padding: 6px 12px; font-size: 12px; flex: 1; }
+      .week-nav span { font-size: 14px; order: -1; width: 100%; text-align: center; margin-bottom: 4px; font-weight: 700; }
+      #syncStatusPill { font-size: 11px; padding: 4px 12px; width: auto; }
 
       /* ── Tabs ────────────────────────────────── */
-      nav.tabs { margin-bottom: 12px; gap: 4px; }
-      nav.tabs button { padding: 7px 10px; font-size: 12px; }
+      nav.tabs { margin-bottom: 16px; gap: 6px; }
+      nav.tabs button { padding: 8px 12px; font-size: 13px; }
 
       /* ── Cards ───────────────────────────────── */
-      .card { padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+      .card { padding: 16px; border-radius: 10px; margin-bottom: 16px; }
+
+      /* ── Manage Availability ─────────────────── */
+      .manage-avail-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
 
       /* ── Schedule table — stays scrollable ───── */
       .table-container {
@@ -1394,7 +1427,7 @@
       <header>
         <div>
           <h1>Smart Scheduler</h1>
-          <div style="font-size: 14px; color: var(--sub);">Logged in as: <span id="currentUserLabel"
+          <div class="user-info-row" style="font-size: 14px; color: var(--sub);">Logged in as: <span id="currentUserLabel"
               style="font-weight: 600; color: var(--ink);"></span> <button class="btn secondary small" id="logoutBtn"
               style="margin-left: 8px;">Logout</button></div>
         </div>
@@ -1469,7 +1502,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <div class="manage-avail-grid">
             <!-- One-off Unavailability -->
             <div>
               <div class="flex-between"
