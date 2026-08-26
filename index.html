@@ -2910,10 +2910,10 @@
           <div id="typePills" style="display:flex; flex-wrap:wrap; gap:8px;">
             ${Object.entries(TYPES).map(([k, v]) => {
               const isSel = existing ? existing.type === k : k === 'regular';
-              return \`<div class="type-pill \${isSel ? 'selected' : ''} \${isPast ? 'disabled' : ''}" 
-                   onclick="selectModalType('\${k}', this)">
-                \${v.label}
-              </div>\`;
+              return `<div class="type-pill ${isSel ? 'selected' : ''} ${isPast ? 'disabled' : ''}" 
+                   onclick="selectModalType('${k}', this)">
+                ${v.label}
+              </div>`;
             }).join('')}
           </div>
         </div>
