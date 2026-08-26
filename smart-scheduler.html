@@ -2018,6 +2018,33 @@ function renderTeamTab() {
   container.innerHTML = html;
 }
 
+window.toggleTeamDetail = function(safeId) {
+  const el = document.getElementById('detail_' + safeId);
+  if (el) {
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+};
+
+window.saveProfile = function(name) {
+  if (!state.data.studentProfiles) state.data.studentProfiles = {};
+  const safeId = name.replace(/[^a-z0-9]/gi,'_');
+  state.data.studentProfiles[name] = {
+    phone: (document.getElementById('phone_' + safeId) || {}).value || '',
+    email: (document.getElementById('email_' + safeId) || {}).value || '',
+    major: (document.getElementById('major_' + safeId) || {}).value || ''
+  };
+  saveData();
+  
+  // Re-render to show updated details instantly
+  renderAll();
+  
+  // Keep the details panel open for the user
+  const newEl = document.getElementById('detail_' + safeId);
+  if (newEl) newEl.style.display = 'block';
+  
+  showToast('Profile updated', 'success', 2000);
+};
+
 </script>
 </body>
 </html>
