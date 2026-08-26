@@ -352,7 +352,7 @@
       <label>Your Role</label>
       <select id="roleSelect">
         <option value="student">👤 Student</option>
-        <option value="professor">🎓 Professor / Admin</option>
+        <option value="professor">🎓 Admin</option>
       </select>
     </div>
 
@@ -393,6 +393,7 @@
       <button data-tab="availability">Availability & Classes</button>
       <button data-tab="swaps" id="tab-swaps-btn">🔄 Shift Swaps</button>
       <button data-tab="conflicts" id="tab-conflicts-btn">Conflicts<span id="conflictBadge" style="display:none;" class="tab-badge"></span></button>
+      <button data-tab="team" id="tab-team-btn" style="display:none;">Team Management</button>
     </nav>
 
     <!-- Master Schedule Tab -->
@@ -465,7 +466,7 @@
         <div class="flex-between" style="margin-bottom:20px;">
           <div>
             <h3 style="margin:0 0 4px;">🔄 Shift Swap Requests</h3>
-            <p style="margin:0; font-size:13px; color:var(--sub);">Request a classmate to cover your shift. Professor approves or denies.</p>
+            <p style="margin:0; font-size:13px; color:var(--sub);">Request a classmate to cover your shift. Admin approves or denies.</p>
           </div>
           <button class="btn" id="newSwapBtn">+ Request a Swap</button>
         </div>
@@ -665,6 +666,10 @@ async function loadData() {
     } catch(e) { console.warn('localStorage parse error', e); }
   }
 
+  // Migrate older saved data
+  if (!state.data.students) state.data.students = [...STUDENTS];
+  if (!state.data.inactiveStudents) state.data.inactiveStudents = [];
+
   // 2. If localStorage was empty, seed with initial data
   if (!state.data.shifts || Object.keys(state.data.shifts).length === 0) {
     state.data = JSON.parse(JSON.stringify(INITIAL_DATA));
@@ -763,7 +768,7 @@ function setupAuthListeners() {
         return;
       }
       state.userRole = 'professor';
-      state.userName = 'Professor';
+      state.userName = 'Admin';
     } else {
       state.userRole = 'student';
       state.userName = document.getElementById('studentSelect').value;
@@ -791,7 +796,8 @@ function setupAuthListeners() {
 }
 
 function populateStudentSelects() {
-  const options = STUDENTS.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
+  const activeStudents = state.data.students.filter(s => !state.data.inactiveStudents.includes(s));
+  const options = activeStudents.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
   document.getElementById('studentSelect').innerHTML = options;
   if(document.getElementById('profStudentSelector')) {
     document.getElementById('profStudentSelector').innerHTML = options;
@@ -805,6 +811,7 @@ function applyRolePermissions() {
     document.getElementById('tab-conflicts-btn').style.display = 'block';
     document.getElementById('profStudentSelectorWrapper').style.display = 'block';
     document.getElementById('tab-swaps-btn').style.display = 'block';
+    document.getElementById('tab-team-btn').style.display = 'block';
   } else {
     document.getElementById('tab-conflicts-btn').style.display = 'none';
     document.getElementById('profStudentSelectorWrapper').style.display = 'none';
@@ -821,7 +828,7 @@ function setupAppListeners() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      ['schedule', 'availability', 'swaps', 'conflicts'].forEach(t => {
+      ['schedule', 'availability', 'swaps', 'conflicts', 'team'].forEach(t => {
         document.getElementById('tab-' + t).style.display = (t === btn.dataset.tab) ? 'block' : 'none';
       });
       sessionStorage.setItem('activeTab', btn.dataset.tab);
@@ -903,6 +910,7 @@ function renderAll() {
   renderSchedule();
   renderAvailability();
   renderConflicts();
+  if(typeof renderTeamTab === "function") renderTeamTab();
 }
 
 function renderSchedule() {
@@ -925,7 +933,12 @@ function renderSchedule() {
   
   const weekShifts = getShiftsForWeek();
   
-  STUDENTS.forEach(student => {
+  const activeOrScheduledStudents = state.data.students.filter(st => {
+    if (!state.data.inactiveStudents.includes(st)) return true;
+    const hasShifts = weekShifts.some(s => s.student === st);
+    return hasShifts;
+  });
+  activeOrScheduledStudents.forEach(student => {
     let studentTotalHours = 0;
     html += `<tr><td style="font-weight: 500;">${student}</td>`;
     
@@ -1202,7 +1215,8 @@ function openShiftModal(student, dayOfWeek, dateStr, existing) {
       // Find students who have NO conflicts and NO overlapping shifts
       const weekShifts = getShiftsForWeek();
       
-      const availableStudents = STUDENTS.filter(st => {
+      const availableStudents = state.data.students.filter(st => {
+        if(state.data.inactiveStudents.includes(st)) return false;
         // Check unavailabilities
         if (checkOverlap(st, dateStr, dayOfWeek, start, end).length > 0) return false;
         // Check existing shifts
@@ -1489,7 +1503,7 @@ function openSwapRequestModal() {
   function renderCoverMode() {
     const shift = getMyShift(); if (!shift) return;
     const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
-    const available = STUDENTS.filter(st => st !== me && isStudentFreeForShift(st, dateStr, shift.dayOfWeek, shift.start, shift.end));
+    const available = state.data.students.filter(st => !state.data.inactiveStudents.includes(st) && st !== me && isStudentFreeForShift(st, dateStr, shift.dayOfWeek, shift.start, shift.end));
     const sec = document.getElementById('swapAvailableSection');
     sec.innerHTML = `
       <div class="swap-shift-preview">
@@ -1531,7 +1545,7 @@ function openSwapRequestModal() {
   function renderExchangeMode() {
     const myShift = getMyShift(); if (!myShift) return;
     const myDateStr = toDateStr(addDays(state.currentWeekStartStr, myShift.dayOfWeek));
-    const peers = STUDENTS.filter(st => st !== me && weekShifts.some(s => s.student === st));
+    const peers = state.data.students.filter(st => !state.data.inactiveStudents.includes(st) && st !== me && weekShifts.some(s => s.student === st));
     const sec = document.getElementById('swapAvailableSection');
     const myDur = duration(myShift.start, myShift.end);
 
@@ -1679,8 +1693,8 @@ function openSwapRequestModal() {
         document.getElementById('tab-' + t).style.display = t === 'swaps' ? 'block' : 'none';
       });
       const msg = currentMode === 'exchange'
-        ? `Exchange request sent to ${req.toStudent}! Waiting for professor approval.`
-        : `Cover request sent to ${req.toStudent}! Waiting for professor approval.`;
+        ? `Exchange request sent to ${req.toStudent}! Waiting for Admin approval.`
+        : `Cover request sent to ${req.toStudent}! Waiting for Admin approval.`;
       showToast(msg, 'success');
     };
   }
@@ -1826,6 +1840,59 @@ window.denySwap = function(id) {
 
 // Start app
 init();
+
+
+window.addNewStudent = function() {
+  const input = document.getElementById('newStudentName');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state.data.students.includes(name)) {
+    if (state.data.inactiveStudents.includes(name)) {
+      toggleStudentActive(name);
+      input.value = '';
+    } else {
+      alert('Student already exists and is active.');
+    }
+    return;
+  }
+  state.data.students.push(name);
+  saveData();
+  input.value = '';
+  populateStudentSelects();
+  renderAll();
+};
+
+window.toggleStudentActive = function(name) {
+  if (state.data.inactiveStudents.includes(name)) {
+    state.data.inactiveStudents = state.data.inactiveStudents.filter(s => s !== name);
+  } else {
+    state.data.inactiveStudents.push(name);
+  }
+  saveData();
+  populateStudentSelects();
+  renderAll();
+};
+
+function renderTeamTab() {
+  if (state.userRole !== 'professor') return;
+  const container = document.getElementById('teamRosterContainer');
+  if (!container) return;
+  
+  let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  state.data.students.slice().sort().forEach(st => {
+    const isActive = !state.data.inactiveStudents.includes(st);
+    html += `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--card);border-radius:6px;border:1px solid var(--line);">
+        <span style="font-weight:500;color:${isActive ? 'var(--ink)' : 'var(--sub)'}">${st} ${isActive ? '' : '(Inactive)'}</span>
+        <button class="btn small ${isActive ? 'danger' : 'secondary'}" onclick="toggleStudentActive('${st.replace(/'/g, "\\'")}')">
+          ${isActive ? 'Deactivate' : 'Activate'}
+        </button>
+      </div>
+    `;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
 
 </script>
 </body>
