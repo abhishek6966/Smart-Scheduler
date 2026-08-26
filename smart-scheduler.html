@@ -1449,17 +1449,8 @@ function openSwapRequestModal() {
 
       <div id="swapAvailableSection" style="margin-top:4px;"></div>
 
-      <div class="field" style="margin-top:12px;">
-        <label style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Reason <span style="font-weight:400;text-transform:none;">(optional)</span></label>
-        <input type="text" id="swapReason" placeholder="e.g. mid-term exam, doctor appointment…">
-      </div>
-
-      <div class="modal-actions">
-        <div></div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn secondary" id="swapCancelBtn">Cancel</button>
-          <button class="btn" id="swapSubmitBtn" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);">Submit Request →</button>
-        </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="btn secondary" id="swapCancelBtn" style="width:100%;">Close</button>
       </div>
     </div>
   </div>`;
@@ -1490,13 +1481,23 @@ function openSwapRequestModal() {
                   <input type="radio" name="swapTo" value="${escAttr(st)}">
                   <div class="peer-avatar">${ini}</div>
                   <span class="peer-name">${st}</span>
-                  <span class="peer-badge" style="cursor:pointer;transition:all 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="setTimeout(()=>document.getElementById('swapSubmitBtn').click(), 50)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Cover</span>
+                  <span class="peer-badge cover-badge" style="cursor:pointer;transition:all 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Cover</span>
                 </label>`;
              }).join('') }
             `
       }`;
     sec.querySelectorAll('.peer-option').forEach(lbl => {
       lbl.addEventListener('click', () => { sec.querySelectorAll('.peer-option').forEach(l=>l.classList.remove('selected')); lbl.classList.add('selected'); });
+    });
+    sec.querySelectorAll('.cover-badge').forEach(badge => {
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation(); e.preventDefault();
+        const radio = badge.closest('label').querySelector('input');
+        radio.checked = true;
+        sec.querySelectorAll('.peer-option').forEach(l=>l.classList.remove('selected')); 
+        badge.closest('label').classList.add('selected');
+        showSwapConfirm();
+      });
     });
   }
 
@@ -1536,7 +1537,7 @@ function openSwapRequestModal() {
                           <div style="font-weight:600;font-size:14px;color:var(--ink);margin-bottom:4px;">${daysArr[ts.dayOfWeek]} ${tsDate} &nbsp;·&nbsp; ${fmt(ts.start)} – ${fmt(ts.end)} <span style="font-weight:500;color:var(--sub);font-size:13px;">(${tsDur} hrs)</span></div>
                           <div style="font-size:12px;color:${typeColors[ts.type]||'#475569'};font-weight:600;display:flex;align-items:center;gap:6px;">${typeIcons[ts.type]||'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>'} ${TYPES[ts.type]?.label||ts.type}</div>
                         </div>
-                        <span class="peer-badge" style="background:#f3e8ff;color:#7c3aed;padding:6px 12px;font-size:13px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="setTimeout(()=>document.getElementById('swapSubmitBtn').click(), 50)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:6px;"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>Trade</span>
+                        <span class="peer-badge exchange-badge" style="background:#f3e8ff;color:#7c3aed;padding:6px 12px;font-size:13px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:6px;"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>Trade</span>
                       </label>`;
                   }).join('') }
                 </div>`;
@@ -1545,6 +1546,16 @@ function openSwapRequestModal() {
       }`;
     sec.querySelectorAll('.peer-option').forEach(lbl => {
       lbl.addEventListener('click', () => { sec.querySelectorAll('.peer-option').forEach(l=>{l.classList.remove('selected'); l.style.background='transparent';}); lbl.classList.add('selected'); lbl.style.background='#eff6ff'; });
+    });
+    sec.querySelectorAll('.exchange-badge').forEach(badge => {
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation(); e.preventDefault();
+        const radio = badge.closest('label').querySelector('input');
+        radio.checked = true;
+        sec.querySelectorAll('.peer-option').forEach(l=>{l.classList.remove('selected'); l.style.background='transparent';}); 
+        const lbl = badge.closest('label'); lbl.classList.add('selected'); lbl.style.background='#eff6ff';
+        showSwapConfirm();
+      });
     });
   }
 
@@ -1573,52 +1584,79 @@ function openSwapRequestModal() {
   document.getElementById('swapCancelBtn').onclick = () => root.innerHTML = '';
   document.getElementById('swapBackdrop').addEventListener('click', e => { if (e.target.id === 'swapBackdrop') root.innerHTML = ''; });
 
-  document.getElementById('swapSubmitBtn').onclick = () => {
+  function showSwapConfirm() {
     const shift = getMyShift();
     const toStudentEl = document.querySelector('input[name="swapTo"]:checked');
-    const reason = document.getElementById('swapReason').value.trim();
-
     if (!shift) { showToast('Please select your shift.', 'error'); return; }
     if (!toStudentEl) { showToast('Please select a classmate.', 'error'); return; }
 
-    const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
-    const req = {
-      id: 'swap_' + Date.now(),
-      swapType: currentMode,          // 'cover' | 'exchange'
-      fromStudent: me,
-      toStudent: toStudentEl.value,
-      weekStr: state.currentWeekStartStr,
-      shiftId: shift.id,
-      dateStr, dayOfWeek: shift.dayOfWeek,
-      start: shift.start, end: shift.end, type: shift.type,
-      reason, status: 'pending',
-      createdAt: new Date().toISOString()
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-backdrop';
+    overlay.style.zIndex = '2000';
+    overlay.style.background = 'rgba(15,23,42,0.6)';
+    overlay.innerHTML = `
+      <div class="modal" style="width:400px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:12px;color:var(--primary);"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--ink);">Confirm \${currentMode === 'cover' ? 'Cover' : 'Exchange'} Request</div>
+        <p style="color:var(--sub);font-size:14px;margin:0 0 20px;">
+          Send this \${currentMode} request to <strong>\${toStudentEl.value}</strong>?
+        </p>
+        <div style="text-align:left; margin-bottom: 24px;">
+          <label style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);display:block;margin-bottom:6px;">Reason (optional)</label>
+          <input type="text" id="finalSwapReason" placeholder="e.g. mid-term exam..." style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;outline:none;">
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn secondary" style="flex:1;" id="confirmCancelBtn">Cancel</button>
+          <button class="btn" style="flex:1;background:linear-gradient(135deg,#3b82f6,#8b5cf6);" id="confirmSubmitBtn">Submit Request</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('confirmCancelBtn').onclick = () => overlay.remove();
+    document.getElementById('confirmSubmitBtn').onclick = () => {
+      const reason = document.getElementById('finalSwapReason').value.trim();
+      overlay.remove();
+      
+      const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
+      const req = {
+        id: 'swap_' + Date.now(),
+        swapType: currentMode,
+        fromStudent: me,
+        toStudent: toStudentEl.value,
+        weekStr: state.currentWeekStartStr,
+        shiftId: shift.id,
+        dateStr, dayOfWeek: shift.dayOfWeek,
+        start: shift.start, end: shift.end, type: shift.type,
+        reason, status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+
+      if (currentMode === 'exchange') {
+        const toShiftId = toStudentEl.dataset.toshiftid;
+        const toShift = weekShifts.find(s => s.id === toShiftId);
+        if (!toShift) { showToast('Please select which shift to exchange.', 'error'); return; }
+        req.toShiftId    = toShift.id;
+        req.toDateStr    = toDateStr(addDays(state.currentWeekStartStr, toShift.dayOfWeek));
+        req.toDayOfWeek  = toShift.dayOfWeek;
+        req.toStart      = toShift.start;
+        req.toEnd        = toShift.end;
+        req.toType       = toShift.type;
+      }
+
+      state.data.swapRequests.push(req);
+      saveData(); root.innerHTML = ''; renderSwaps();
+      document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-tab="swaps"]').classList.add('active');
+      ['schedule','availability','swaps','conflicts'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === 'swaps' ? 'block' : 'none';
+      });
+      const msg = currentMode === 'exchange'
+        ? \`Exchange request sent to \${req.toStudent}! Waiting for professor approval.\`
+        : \`Cover request sent to \${req.toStudent}! Waiting for professor approval.\`;
+      showToast(msg, 'success');
     };
-
-    if (currentMode === 'exchange') {
-      const toShiftId = toStudentEl.dataset.toshiftid;
-      const toShift = weekShifts.find(s => s.id === toShiftId);
-      if (!toShift) { showToast('Please select which shift to exchange.', 'error'); return; }
-      req.toShiftId    = toShift.id;
-      req.toDateStr    = toDateStr(addDays(state.currentWeekStartStr, toShift.dayOfWeek));
-      req.toDayOfWeek  = toShift.dayOfWeek;
-      req.toStart      = toShift.start;
-      req.toEnd        = toShift.end;
-      req.toType       = toShift.type;
-    }
-
-    state.data.swapRequests.push(req);
-    saveData(); root.innerHTML = ''; renderSwaps();
-    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
-    document.querySelector('[data-tab="swaps"]').classList.add('active');
-    ['schedule','availability','swaps','conflicts'].forEach(t => {
-      document.getElementById('tab-' + t).style.display = t === 'swaps' ? 'block' : 'none';
-    });
-    const msg = currentMode === 'exchange'
-      ? `Exchange request sent to ${req.toStudent}! Waiting for professor approval.`
-      : `Cover request sent to ${req.toStudent}! Waiting for professor approval.`;
-    showToast(msg, 'success');
-  };
+  }
 }
 
 function renderSwaps() {
