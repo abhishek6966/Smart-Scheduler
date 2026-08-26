@@ -33,8 +33,12 @@
       --training-tx: #854d0e;
       --event-bg: #bfdbfe;
       --event-tx: #1e3a8a;
-      --closed-bg: #fecaca;
-      --closed-tx: #991b1b;
+      --oue-bg: #059669;
+      --oue-tx: #ffffff;
+      --meeting-bg: #f43f5e;
+      --meeting-tx: #ffffff;
+      --oncall-bg: #a855f7;
+      --oncall-tx: #ffffff;
       --unavail-bg: #e9d5ff;
       --unavail-tx: #6b21a8;
     }
@@ -1431,7 +1435,9 @@
       regular:  { label: 'Scheduled', bg: '#1f2937', tx: '#ffffff' },
       training: { label: 'Training',  bg: '#fef08a', tx: '#854d0e' },
       event:    { label: 'Event',     bg: '#bfdbfe', tx: '#1e3a8a' },
-      closed:   { label: 'Closed',    bg: '#fecaca', tx: '#991b1b' },
+      oue:      { label: 'OUE Hours', bg: '#059669', tx: '#ffffff' },
+      meeting:  { label: 'Meeting',   bg: '#f43f5e', tx: '#ffffff' },
+      oncall:   { label: 'On-Call',   bg: '#a855f7', tx: '#ffffff' },
       unavail:  { label: 'Unavailable', bg: '#e9d5ff', tx: '#6b21a8' },
       override: { label: 'Override',  bg: '#f97316', tx: '#ffffff' }
     };
@@ -1480,15 +1486,21 @@
       root.style.setProperty('--training-tx', cfg.training.tx);
       root.style.setProperty('--event-bg',    cfg.event.bg);
       root.style.setProperty('--event-tx',    cfg.event.tx);
-      root.style.setProperty('--closed-bg',   cfg.closed.bg);
-      root.style.setProperty('--closed-tx',   cfg.closed.tx);
+      root.style.setProperty('--oue-bg',      cfg.oue.bg);
+      root.style.setProperty('--oue-tx',      cfg.oue.tx);
+      root.style.setProperty('--meeting-bg',  cfg.meeting.bg);
+      root.style.setProperty('--meeting-tx',  cfg.meeting.tx);
+      root.style.setProperty('--oncall-bg',   cfg.oncall.bg);
+      root.style.setProperty('--oncall-tx',   cfg.oncall.tx);
       root.style.setProperty('--unavail-bg',  cfg.unavail.bg);
       root.style.setProperty('--unavail-tx',  cfg.unavail.tx);
       // Update the TYPES object labels so shift chips and modals reflect changes
       TYPES.regular.label  = cfg.regular.label;
       TYPES.training.label = cfg.training.label;
       TYPES.event.label    = cfg.event.label;
-      TYPES.closed.label   = cfg.closed.label;
+      TYPES.oue.label      = cfg.oue.label;
+      TYPES.meeting.label  = cfg.meeting.label;
+      TYPES.oncall.label   = cfg.oncall.label;
       // Rebuild the legend
       renderLegend();
     }
@@ -1502,7 +1514,9 @@
         <span><span class="swatch" style="background:${cfg.regular.bg}"></span>${cfg.regular.label}</span>
         <span><span class="swatch" style="background:${cfg.training.bg}"></span>${cfg.training.label}</span>
         <span><span class="swatch" style="background:${cfg.event.bg}"></span>${cfg.event.label}</span>
-        <span><span class="swatch" style="background:${cfg.closed.bg}"></span>${cfg.closed.label}</span>
+        <span><span class="swatch" style="background:${cfg.oue.bg}"></span>${cfg.oue.label}</span>
+        <span><span class="swatch" style="background:${cfg.meeting.bg}"></span>${cfg.meeting.label}</span>
+        <span><span class="swatch" style="background:${cfg.oncall.bg}"></span>${cfg.oncall.label}</span>
         <span><span class="swatch" style="background:${cfg.unavail.bg}"></span>${cfg.unavail.label}</span>
         <span style="margin-left:8px;"><span class="chip-overridden" style="position:static;display:inline-flex;">!</span> ${cfg.override.label}</span>
       `;
@@ -1512,7 +1526,9 @@
       regular: { label: 'Scheduled shift', bg: 'var(--regular-bg)', tx: 'var(--regular-tx)' },
       training: { label: 'Training', bg: 'var(--training-bg)', tx: 'var(--training-tx)' },
       event: { label: 'Event shift', bg: 'var(--event-bg)', tx: 'var(--event-tx)' },
-      closed: { label: 'Building closed', bg: 'var(--closed-bg)', tx: 'var(--closed-tx)' }
+      oue: { label: 'OUE Hours', bg: 'var(--oue-bg)', tx: 'var(--oue-tx)' },
+      meeting: { label: 'Meeting', bg: 'var(--meeting-bg)', tx: 'var(--meeting-tx)' },
+      oncall: { label: 'On-Call', bg: 'var(--oncall-bg)', tx: 'var(--oncall-tx)' }
     };
 
 
@@ -3256,7 +3272,9 @@
         { key: 'regular',  name: 'Scheduled' },
         { key: 'training', name: 'Training' },
         { key: 'event',    name: 'Event' },
-        { key: 'closed',   name: 'Closed' },
+        { key: 'oue',      name: 'OUE Hours' },
+        { key: 'meeting',  name: 'Meeting' },
+        { key: 'oncall',   name: 'On-Call' },
         { key: 'unavail',  name: 'Unavailable' },
         { key: 'override', name: 'Override' },
       ];
@@ -3532,7 +3550,7 @@
 
     window.saveTypeConfig = function () {
       if (!state.data.typeConfig) state.data.typeConfig = {};
-      ['regular', 'training', 'event', 'closed', 'unavail', 'override'].forEach(key => {
+      ['regular', 'training', 'event', 'oue', 'meeting', 'oncall', 'unavail', 'override'].forEach(key => {
         const labelEl = document.getElementById('tc_label_' + key);
         const bgEl    = document.getElementById('tc_bg_' + key);
         const txEl    = document.getElementById('tc_tx_' + key);
