@@ -210,17 +210,90 @@
   .list-meta { font-size: 12px; color: var(--sub); margin-top: 4px; }
 
   /* Swap Requests */
-  .swap-card { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 12px; background: #fff; }
-  .swap-card .swap-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-  .swap-card .swap-meta { font-size: 12px; color: var(--sub); margin-bottom: 12px; }
-  .swap-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-  .swap-status.pending { background: #fef3c7; color: #92400e; }
+  .swap-card {
+    border: 1px solid var(--line); border-radius: 12px; padding: 20px;
+    margin-bottom: 12px; background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s;
+  }
+  .swap-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .swap-card .swap-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; color: var(--ink); }
+  .swap-card .swap-meta { font-size: 13px; color: var(--sub); line-height: 1.5; }
+  .swap-status {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    white-space: nowrap;
+  }
+  .swap-status.pending  { background: #fef3c7; color: #92400e; }
   .swap-status.approved { background: #d1fae5; color: #065f46; }
-  .swap-status.denied { background: #fee2e2; color: #991b1b; }
-  .avail-option { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
-  .avail-option:hover { background: #eff6ff; border-color: var(--primary); }
-  .avail-option input[type=radio] { margin-right: 10px; }
-  .no-swap { text-align: center; color: var(--sub); padding: 32px; font-size: 14px; }
+  .swap-status.denied   { background: #fee2e2; color: #991b1b; }
+
+  .peer-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border: 2px solid var(--line); border-radius: 10px;
+    margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+    user-select: none; background: #fff;
+  }
+  .peer-option:hover { border-color: var(--primary); background: #eff6ff; }
+  .peer-option.selected { border-color: var(--primary); background: #eff6ff; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+  .peer-option input[type=radio] { display: none; }
+  .peer-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; flex-shrink: 0;
+  }
+  .peer-name { font-weight: 600; font-size: 14px; color: var(--ink); }
+  .peer-badge {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+    background: #d1fae5; color: #065f46; border-radius: 20px;
+    padding: 3px 10px; font-size: 12px; font-weight: 600;
+  }
+  .peer-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--line); flex-shrink: 0; margin-left: 8px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .peer-option.selected .peer-check {
+    background: var(--primary); border-color: var(--primary);
+  }
+  .peer-option.selected .peer-check::after {
+    content: ''; width: 6px; height: 6px; background: white; border-radius: 50%;
+  }
+
+  .swap-shift-preview {
+    background: #f8faff; border: 1px solid #dbeafe; border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .swap-shift-icon { font-size: 22px; }
+  .swap-shift-info { flex: 1; }
+  .swap-shift-info strong { display: block; font-size: 14px; font-weight: 700; color: var(--ink); }
+  .swap-shift-info span { font-size: 12px; color: var(--sub); }
+
+  .swap-participants {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .swap-person-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f3f4f6; border-radius: 20px; padding: 4px 12px;
+    font-size: 13px; font-weight: 500;
+  }
+  .swap-person-pill .mini-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: #fff; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .swap-arrow { font-size: 16px; color: var(--sub); }
+
+  .no-swap {
+    text-align: center; padding: 48px 24px;
+    color: var(--sub); font-size: 14px; line-height: 1.8;
+  }
+  .no-swap .no-swap-icon { font-size: 40px; margin-bottom: 8px; }
+
 
 </style>
 </head>
@@ -1285,22 +1358,32 @@ function openSwapRequestModal() {
 
   root.innerHTML = `
   <div class="modal-backdrop" id="swapBackdrop">
-    <div class="modal" style="width:520px;">
-      <h3>🔄 Request a Shift Swap</h3>
+    <div class="modal" style="width:540px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line);">
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;">🔄</div>
+        <div>
+          <div style="font-size:17px;font-weight:700;color:var(--ink);">Request a Shift Swap</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:1px;">Pick a shift and a free classmate to cover it</div>
+        </div>
+      </div>
+
       <div class="field">
-        <label>Select YOUR shift to swap away</label>
-        <select id="swapShiftSelect">${shiftOptions}</select>
+        <label style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Your shift to swap away</label>
+        <select id="swapShiftSelect" style="font-weight:500;">${shiftOptions}</select>
       </div>
-      <div id="swapAvailableSection" style="margin-top:16px;"></div>
+
+      <div id="swapAvailableSection" style="margin-top:4px;"></div>
+
       <div class="field" style="margin-top:12px;">
-        <label>Reason (optional — e.g. exam, appointment)</label>
-        <input type="text" id="swapReason" placeholder="e.g. I have a mid-term exam">
+        <label style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Reason <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+        <input type="text" id="swapReason" placeholder="e.g. mid-term exam, doctor appointment…">
       </div>
+
       <div class="modal-actions">
         <div></div>
         <div style="display:flex;gap:8px;">
           <button class="btn secondary" id="swapCancelBtn">Cancel</button>
-          <button class="btn" id="swapSubmitBtn">Submit Request</button>
+          <button class="btn" id="swapSubmitBtn" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);">Submit Request →</button>
         </div>
       </div>
     </div>
@@ -1313,17 +1396,41 @@ function openSwapRequestModal() {
     const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
     const available = STUDENTS.filter(st => st !== me && isStudentFreeForShift(st, dateStr, shift.dayOfWeek, shift.start, shift.end));
     const sec = document.getElementById('swapAvailableSection');
-    if (available.length === 0) {
-      sec.innerHTML = `<div class="conflict-box">⚠️ No other students are fully free during this shift time.</div>`;
-    } else {
-      sec.innerHTML = `<div class="field"><label>Select a classmate who is available to cover</label>${
-        available.map(st => `
-          <label class="avail-option">
-            <span><input type="radio" name="swapTo" value="${escAttr(st)}"> ${st}</span>
-            <span style="font-size:12px;color:var(--success);">✓ Free this slot</span>
-          </label>`).join('')
-      }</div>`;
-    }
+
+    const typeLabel = TYPES[shift.type]?.label || shift.type;
+    const typeColors = { regular:'#1f2937', training:'#854d0e', event:'#1e3a8a', closed:'#991b1b' };
+    sec.innerHTML = `
+      <div class="swap-shift-preview">
+        <div class="swap-shift-icon">${{regular:'📋',training:'📚',event:'🎯',closed:'🔒'}[shift.type] || '📋'}</div>
+        <div class="swap-shift-info">
+          <strong>${daysArr[shift.dayOfWeek]} ${dateStr} &nbsp;·&nbsp; ${fmt(shift.start)} – ${fmt(shift.end)}</strong>
+          <span style="color:${typeColors[shift.type]||'#374151'};font-weight:600;">${typeLabel}</span>
+        </div>
+      </div>
+      ${ available.length === 0
+        ? `<div class="conflict-box" style="border-radius:10px;">⚠️ No classmates are free during this entire shift window. Try a different shift.</div>`
+        : `<div style="margin-bottom:8px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Select a classmate to cover (${available.length} available)</div>
+           ${ available.map(st => {
+              const initials = st.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+              return `
+              <label class="peer-option" id="opt_${escAttr(st)}">
+                <input type="radio" name="swapTo" value="${escAttr(st)}">
+                <div class="peer-avatar">${initials}</div>
+                <span class="peer-name">${st}</span>
+                <span class="peer-badge">✓ Free</span>
+                <div class="peer-check"></div>
+              </label>`;
+           }).join('')}
+          `
+      }`;
+
+    // Clicking the label toggles selection styling
+    sec.querySelectorAll('.peer-option').forEach(lbl => {
+      lbl.addEventListener('click', () => {
+        sec.querySelectorAll('.peer-option').forEach(l => l.classList.remove('selected'));
+        lbl.classList.add('selected');
+      });
+    });
   }
 
   document.getElementById('swapShiftSelect').addEventListener('change', refreshAvailable);
@@ -1385,28 +1492,44 @@ function renderSwaps() {
     : state.data.swapRequests.filter(r => r.fromStudent === me || r.toStudent === me).reverse();
 
   if (visible.length === 0) {
-    list.innerHTML = `<div class="no-swap">No swap requests yet.<br><span style="font-size:13px;">Click "+ Request a Swap" to get started.</span></div>`;
+    list.innerHTML = `<div class="no-swap"><div class="no-swap-icon">🔄</div>No swap requests yet.<br><span style="font-size:13px;">Click "+ Request a Swap" above to get started.</span></div>`;
     return;
   }
 
   list.innerHTML = visible.map(r => {
     const statusClass = r.status;
     const statusLabel = { pending: '⏳ Pending', approved: '✅ Approved', denied: '❌ Denied' }[r.status] || r.status;
-    const dirTag = isProfessor ? '' : (r.fromStudent === me ? '<span style="font-size:11px;color:var(--sub);">(You sent)</span>' : '<span style="font-size:11px;color:var(--primary);">(Sent to you)</span>');
+    const fromInitials = r.fromStudent.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const toInitials   = r.toStudent.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const dirTag = isProfessor ? '' : (r.fromStudent === me
+      ? `<span style="font-size:11px;background:#f3f4f6;padding:2px 8px;border-radius:10px;color:var(--sub);">You sent</span>`
+      : `<span style="font-size:11px;background:#eff6ff;padding:2px 8px;border-radius:10px;color:var(--primary);font-weight:600;">Incoming request</span>`);
+    const typeIcon = {regular:'📋',training:'📚',event:'🎯',closed:'🔒'}[r.type] || '📋';
     const approveBtn = isProfessor && r.status === 'pending'
-      ? `<div style="display:flex;gap:8px;margin-top:10px;">
-           <button class="btn small" onclick="approveSwap('${r.id}')">✅ Approve</button>
-           <button class="btn danger small" onclick="denySwap('${r.id}')">❌ Deny</button>
+      ? `<div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
+           <button class="btn small" style="background:var(--success);flex:1;" onclick="approveSwap('${r.id}')">✅ Approve & Apply Swap</button>
+           <button class="btn danger small" style="flex:1;" onclick="denySwap('${r.id}')">❌ Deny</button>
          </div>` : '';
+
     return `
     <div class="swap-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div class="swap-title">${daysArr[r.dayOfWeek]} ${r.dateStr} &nbsp;${fmt(r.start)} – ${fmt(r.end)} &nbsp;<span style="font-weight:400;font-size:13px;">${TYPES[r.type]?.label || r.type}</span></div>
-          <div class="swap-meta">
-            <strong>${r.fromStudent}</strong> → <strong>${r.toStudent}</strong> ${dirTag}
-            ${r.reason ? `<br>Reason: "${r.reason}"` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="flex:1;">
+          <div class="swap-title">${typeIcon} ${daysArr[r.dayOfWeek]}, ${r.dateStr} &nbsp;·&nbsp; ${fmt(r.start)} – ${fmt(r.end)}</div>
+          <div class="swap-meta" style="margin-bottom:10px;">${TYPES[r.type]?.label || r.type}</div>
+          <div class="swap-participants">
+            <span class="swap-person-pill">
+              <span class="mini-avatar">${fromInitials}</span>
+              ${r.fromStudent}
+            </span>
+            <span class="swap-arrow">→</span>
+            <span class="swap-person-pill">
+              <span class="mini-avatar">${toInitials}</span>
+              ${r.toStudent}
+            </span>
+            ${dirTag}
           </div>
+          ${r.reason ? `<div style="margin-top:8px;font-size:13px;color:var(--sub);">💬 "${r.reason}"</div>` : ''}
         </div>
         <span class="swap-status ${statusClass}">${statusLabel}</span>
       </div>
