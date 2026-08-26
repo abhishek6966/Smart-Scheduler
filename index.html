@@ -1394,8 +1394,32 @@
       return result;
     }
 
+    const SPECIAL_DAY_DEFAULTS = {
+      holiday: { label: 'Holiday', bg: '#dcfce7', tx: '#166534' },
+      closed:  { label: 'Building Closed', bg: '#fee2e2', tx: '#991b1b' }
+    };
+
+    function getSpecialDayConfig() {
+      const saved = (state.data && state.data.specialDayColors) || {};
+      const result = {};
+      for (const key of Object.keys(SPECIAL_DAY_DEFAULTS)) {
+        result[key] = { ...SPECIAL_DAY_DEFAULTS[key], ...(saved[key] || {}) };
+      }
+      return result;
+    }
+
+    function applySpecialDayConfig() {
+      const cfg = getSpecialDayConfig();
+      const root = document.documentElement;
+      root.style.setProperty('--special-holiday-bg', cfg.holiday.bg);
+      root.style.setProperty('--special-holiday-tx', cfg.holiday.tx);
+      root.style.setProperty('--special-closed-bg', cfg.closed.bg);
+      root.style.setProperty('--special-closed-tx', cfg.closed.tx);
+    }
+
     // Apply type config to CSS variables and TYPES object so all cells update
     function applyTypeConfig() {
+      applySpecialDayConfig();
       const cfg = getTypeConfig();
       const root = document.documentElement;
       root.style.setProperty('--regular-bg',  cfg.regular.bg);
@@ -1671,6 +1695,8 @@
       if (!state.data.inactiveStudents) state.data.inactiveStudents = [];
       if (!state.data.swapRequests) state.data.swapRequests = [];
       if (!state.data.studentProfiles) state.data.studentProfiles = {};
+      if (!state.data.specialDays) state.data.specialDays = {};
+      if (!state.data.specialDayColors) state.data.specialDayColors = {};
 
       if (lbl) lbl.textContent = state.userName || '';
     }
@@ -2032,8 +2058,25 @@
         });
       }
 
+      const spCfg = getSpecialDayConfig();
+
       let html = '<thead><tr><th>First Name</th><th>Last Name</th>';
-      days.forEach(d => { html += `<th class="day-head">${d.label}<div class="day-date">${d.dateDisplay}</div></th>`; });
+      days.forEach(d => { 
+        const specialType = (state.data.specialDays && state.data.specialDays[d.dateStr]) || null;
+        let bgStyle = '';
+        let txStyle = '';
+        
+        if (specialType && spCfg[specialType]) {
+          bgStyle = `background-color: var(--special-${specialType}-bg);`;
+          txStyle = `color: var(--special-${specialType}-tx);`;
+        }
+
+        const adminControls = !readOnly ? 
+          `<div style="font-size:10px; cursor:pointer; opacity:0.6; margin-top:4px;" onclick="toggleSpecialDay('${d.dateStr}')" title="Click to toggle Holiday/Closed status">✎</div>` 
+          : '';
+
+        html += `<th class="day-head" style="${bgStyle} ${txStyle}">${d.label}<div class="day-date">${d.dateDisplay}</div>${adminControls}</th>`; 
+      });
       html += '<th class="totcol">Total hrs</th></tr></thead><tbody>';
 
       const weekShifts = getShiftsForWeek();
@@ -3194,7 +3237,97 @@
       </div>
       `;
 
-      container.innerHTML = rosterHtml + custHtml;
+      // ── Special Days Customizer & Bulk Range ────────────────────────────────
+      const spCfg = getSpecialDayConfig();
+      const spKeys = [
+        { key: 'holiday', name: 'Holiday' },
+        { key: 'closed',  name: 'Building Closed' }
+      ];
+
+      let specialHtml = `
+      <div style="margin-top:24px;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:0 4px 20px rgba(0,0,0,0.03);">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-0.3px;">🗓️ Special Days</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:2px;">Customize colors for Holidays & Closed days, and bulk assign date ranges.</div>
+          </div>
+          <button class="btn secondary small" onclick="resetSpecialDayConfig()" style="background:transparent;border:1px solid var(--line);color:var(--sub);">Reset Colors</button>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px;">
+          
+          <!-- Colors -->
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:12px;">Customize Colors</div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+      `;
+
+      spKeys.forEach(({ key, name }) => {
+        const c = spCfg[key];
+        specialHtml += `
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,0.5);">
+                <div style="display:flex;flex-direction:column;gap:4px;flex-grow:1;">
+                  <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;">${name}</div>
+                  <input type="text" id="sp_label_${key}" value="${c.label}" placeholder="Label"
+                    style="padding:6px 10px;border:1px solid rgba(0,0,0,0.1);border-radius:6px;font-size:13px;width:100%;box-sizing:border-box;background:#fff;"
+                    oninput="previewSpecialDayConfig('${key}')">
+                </div>
+                <div style="display:flex;gap:6px;align-items:flex-end;">
+                  <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                    <span style="font-size:10px;color:var(--sub);font-weight:600;">BG</span>
+                    <input type="color" id="sp_bg_${key}" value="${c.bg}" title="Background Color"
+                      style="width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:0;background:transparent;"
+                      oninput="previewSpecialDayConfig('${key}')">
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                    <span style="font-size:10px;color:var(--sub);font-weight:600;">Text</span>
+                    <input type="color" id="sp_tx_${key}" value="${c.tx}" title="Text Color"
+                      style="width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:0;background:transparent;"
+                      oninput="previewSpecialDayConfig('${key}')">
+                  </div>
+                </div>
+              </div>
+        `;
+      });
+
+      specialHtml += `
+            </div>
+            <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+              <button class="btn secondary" onclick="saveSpecialDayConfig()" style="font-weight:600;">Save Colors</button>
+            </div>
+          </div>
+
+          <!-- Bulk Range -->
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:12px;">Bulk Range Selector</div>
+            <div style="padding:16px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,0.5);">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:4px;">Start Date</label>
+                  <input type="date" id="bulk_start" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:4px;font-size:13px;">
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:4px;">End Date</label>
+                  <input type="date" id="bulk_end" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:4px;font-size:13px;">
+                </div>
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:4px;">Day Type</label>
+                <select id="bulk_type" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:4px;font-size:13px;">
+                  <option value="holiday">Holiday</option>
+                  <option value="closed">Building Closed</option>
+                  <option value="">Working Day (Clear Status)</option>
+                </select>
+              </div>
+              <button class="btn" onclick="applyBulkRange()" style="width:100%;background:linear-gradient(135deg, #10b981, #059669);color:white;font-weight:600;border-radius:6px;padding:8px;">Apply to Range</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      `;
+
+      container.innerHTML = rosterHtml + custHtml + specialHtml;
     }
 
     // ── Type Customizer Helpers ───────────────────────────────
@@ -3203,14 +3336,6 @@
       const tx = (document.getElementById('tc_tx_' + key) || {}).value;
       if (bg) document.documentElement.style.setProperty('--' + key + '-bg', bg);
       if (tx) document.documentElement.style.setProperty('--' + key + '-tx', tx);
-      const swatch = document.querySelector(`#tc_label_${key}`);
-      if (swatch) {
-        const card = swatch.closest('div[style*="border-radius:8px"]');
-        if (card) {
-          const sw = card.querySelector('span[style*="border-radius:5px"]');
-          if (sw && bg) sw.style.background = bg;
-        }
-      }
     };
 
     window.saveTypeConfig = function () {
