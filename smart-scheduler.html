@@ -208,7 +208,20 @@
   .list-row:last-child { border-bottom: none; }
   .list-desc { font-weight: 500; }
   .list-meta { font-size: 12px; color: var(--sub); margin-top: 4px; }
-  
+
+  /* Swap Requests */
+  .swap-card { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 12px; background: #fff; }
+  .swap-card .swap-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .swap-card .swap-meta { font-size: 12px; color: var(--sub); margin-bottom: 12px; }
+  .swap-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .swap-status.pending { background: #fef3c7; color: #92400e; }
+  .swap-status.approved { background: #d1fae5; color: #065f46; }
+  .swap-status.denied { background: #fee2e2; color: #991b1b; }
+  .avail-option { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
+  .avail-option:hover { background: #eff6ff; border-color: var(--primary); }
+  .avail-option input[type=radio] { margin-right: 10px; }
+  .no-swap { text-align: center; color: var(--sub); padding: 32px; font-size: 14px; }
+
 </style>
 </head>
 <body>
@@ -265,6 +278,7 @@
     <nav class="tabs">
       <button data-tab="schedule" class="active">Master Schedule</button>
       <button data-tab="availability">Availability & Classes</button>
+      <button data-tab="swaps" id="tab-swaps-btn">🔄 Shift Swaps</button>
       <button data-tab="conflicts" id="tab-conflicts-btn">Conflicts</button>
     </nav>
 
@@ -332,6 +346,20 @@
       </div>
     </div>
 
+    <!-- Shift Swaps Tab -->
+    <div id="tab-swaps" style="display:none;">
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:20px;">
+          <div>
+            <h3 style="margin:0 0 4px;">🔄 Shift Swap Requests</h3>
+            <p style="margin:0; font-size:13px; color:var(--sub);">Request a classmate to cover your shift. Professor approves or denies.</p>
+          </div>
+          <button class="btn" id="newSwapBtn">+ Request a Swap</button>
+        </div>
+        <div id="swapList"><!-- rendered by JS --></div>
+      </div>
+    </div>
+
     <!-- Conflicts Tab -->
     <div id="tab-conflicts" style="display:none;">
       <div class="card" id="conflictsContainer">
@@ -367,7 +395,8 @@ let state = {
   data: {
     shifts: {}, // keyed by weekStartStr: [ {id, student, dayOfWeek(0-6), start, end, type, location, overrideReason} ]
     unavailability: [], // {id, student, dateStr(YYYY-MM-DD), start, end, note}
-    recurringClasses: [] // {id, student, dayOfWeek(0-6), start, end, note}
+    recurringClasses: [], // {id, student, dayOfWeek(0-6), start, end, note}
+    swapRequests: [] // {id, fromStudent, toStudent, weekStr, shiftId, dateStr, dayOfWeek, start, end, type, reason, status:'pending'|'approved'|'denied'}
   }
 };
 
@@ -494,6 +523,8 @@ async function loadData() {
     state.data = JSON.parse(JSON.stringify(INITIAL_DATA));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
   }
+  // Migrate older saved data that didn't have swapRequests
+  if (!state.data.swapRequests) state.data.swapRequests = [];
 
   // 3. Try to sync with Google Sheets in background (non-blocking)
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
@@ -621,9 +652,11 @@ function applyRolePermissions() {
   if (state.userRole === 'professor') {
     document.getElementById('tab-conflicts-btn').style.display = 'block';
     document.getElementById('profStudentSelectorWrapper').style.display = 'block';
+    document.getElementById('tab-swaps-btn').style.display = 'block';
   } else {
     document.getElementById('tab-conflicts-btn').style.display = 'none';
     document.getElementById('profStudentSelectorWrapper').style.display = 'none';
+    document.getElementById('tab-swaps-btn').style.display = 'block';
     // Ensure availability tab defaults to the logged-in student
     document.getElementById('profStudentSelector').value = state.userName;
   }
@@ -636,9 +669,10 @@ function setupAppListeners() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      ['schedule', 'availability', 'conflicts'].forEach(t => {
+      ['schedule', 'availability', 'swaps', 'conflicts'].forEach(t => {
         document.getElementById('tab-' + t).style.display = (t === btn.dataset.tab) ? 'block' : 'none';
       });
+      if (btn.dataset.tab === 'swaps') renderSwaps();
     });
   });
   
@@ -659,6 +693,9 @@ function setupAppListeners() {
   
   // Export
   document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+
+  // Swap request button
+  document.getElementById('newSwapBtn').addEventListener('click', openSwapRequestModal);
 }
 
 function changeWeek(daysOffset) {
@@ -1214,6 +1251,191 @@ function exportToCSV() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// --- Shift Swap Requests ---
+
+function isStudentFreeForShift(student, dateStr, dayOfWeek, start, end) {
+  // Check no existing shift overlaps
+  const weekShifts = state.data.shifts[state.currentWeekStartStr] || [];
+  const hasShiftConflict = weekShifts.some(s => s.student === student && s.dayOfWeek === dayOfWeek && overlaps(start, end, s.start, s.end));
+  if (hasShiftConflict) return false;
+  // Check no unavailability overlaps
+  const unavails = getAllUnavailabilityForStudentDay(student, dateStr, dayOfWeek);
+  const hasUnavailConflict = unavails.some(u => overlaps(start, end, u.start, u.end));
+  return !hasUnavailConflict;
+}
+
+function openSwapRequestModal() {
+  const root = document.getElementById('modalRoot');
+  const me = state.userName;
+  const weekShifts = state.data.shifts[state.currentWeekStartStr] || [];
+  const myShifts = weekShifts.filter(s => s.student === me);
+  const daysArr = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  if (myShifts.length === 0) {
+    alert('You have no shifts scheduled this week to swap.');
+    return;
+  }
+
+  const shiftOptions = myShifts.map(s => {
+    const dateStr = toDateStr(addDays(state.currentWeekStartStr, s.dayOfWeek));
+    const label = `${daysArr[s.dayOfWeek]} ${dateStr}: ${fmt(s.start)} – ${fmt(s.end)} (${TYPES[s.type]?.label || s.type})`;
+    return `<option value="${escAttr(s.id)}">${label}</option>`;
+  }).join('');
+
+  root.innerHTML = `
+  <div class="modal-backdrop" id="swapBackdrop">
+    <div class="modal" style="width:520px;">
+      <h3>🔄 Request a Shift Swap</h3>
+      <div class="field">
+        <label>Select YOUR shift to swap away</label>
+        <select id="swapShiftSelect">${shiftOptions}</select>
+      </div>
+      <div id="swapAvailableSection" style="margin-top:16px;"></div>
+      <div class="field" style="margin-top:12px;">
+        <label>Reason (optional — e.g. exam, appointment)</label>
+        <input type="text" id="swapReason" placeholder="e.g. I have a mid-term exam">
+      </div>
+      <div class="modal-actions">
+        <div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn secondary" id="swapCancelBtn">Cancel</button>
+          <button class="btn" id="swapSubmitBtn">Submit Request</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  function refreshAvailable() {
+    const shiftId = document.getElementById('swapShiftSelect').value;
+    const shift = myShifts.find(s => s.id === shiftId);
+    if (!shift) return;
+    const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
+    const available = STUDENTS.filter(st => st !== me && isStudentFreeForShift(st, dateStr, shift.dayOfWeek, shift.start, shift.end));
+    const sec = document.getElementById('swapAvailableSection');
+    if (available.length === 0) {
+      sec.innerHTML = `<div class="conflict-box">⚠️ No other students are fully free during this shift time.</div>`;
+    } else {
+      sec.innerHTML = `<div class="field"><label>Select a classmate who is available to cover</label>${
+        available.map(st => `
+          <label class="avail-option">
+            <span><input type="radio" name="swapTo" value="${escAttr(st)}"> ${st}</span>
+            <span style="font-size:12px;color:var(--success);">✓ Free this slot</span>
+          </label>`).join('')
+      }</div>`;
+    }
+  }
+
+  document.getElementById('swapShiftSelect').addEventListener('change', refreshAvailable);
+  refreshAvailable();
+
+  document.getElementById('swapCancelBtn').onclick = () => root.innerHTML = '';
+  document.getElementById('swapBackdrop').addEventListener('click', e => { if (e.target.id === 'swapBackdrop') root.innerHTML = ''; });
+
+  document.getElementById('swapSubmitBtn').onclick = () => {
+    const shiftId = document.getElementById('swapShiftSelect').value;
+    const shift = myShifts.find(s => s.id === shiftId);
+    const toStudentEl = document.querySelector('input[name="swapTo"]:checked');
+    const reason = document.getElementById('swapReason').value.trim();
+
+    if (!shift) { alert('Please select a shift.'); return; }
+    if (!toStudentEl) { alert('Please select a classmate to swap with.'); return; }
+
+    const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
+    state.data.swapRequests.push({
+      id: 'swap_' + Date.now(),
+      fromStudent: me,
+      toStudent: toStudentEl.value,
+      weekStr: state.currentWeekStartStr,
+      shiftId: shift.id,
+      dateStr,
+      dayOfWeek: shift.dayOfWeek,
+      start: shift.start,
+      end: shift.end,
+      type: shift.type,
+      reason,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
+    saveData();
+    root.innerHTML = '';
+    renderSwaps();
+    // Switch to swaps tab
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-tab="swaps"]').classList.add('active');
+    ['schedule','availability','swaps','conflicts'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === 'swaps' ? 'block' : 'none';
+    });
+    alert('✅ Swap request submitted! Waiting for professor approval.');
+  };
+}
+
+function renderSwaps() {
+  const list = document.getElementById('swapList');
+  if (!list) return;
+  if (!state.data.swapRequests) state.data.swapRequests = [];
+
+  const daysArr = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const isProfessor = state.userRole === 'professor';
+  const me = state.userName;
+
+  // Filter: professor sees all; student sees their own (sent & received)
+  const visible = isProfessor
+    ? [...state.data.swapRequests].reverse()
+    : state.data.swapRequests.filter(r => r.fromStudent === me || r.toStudent === me).reverse();
+
+  if (visible.length === 0) {
+    list.innerHTML = `<div class="no-swap">No swap requests yet.<br><span style="font-size:13px;">Click "+ Request a Swap" to get started.</span></div>`;
+    return;
+  }
+
+  list.innerHTML = visible.map(r => {
+    const statusClass = r.status;
+    const statusLabel = { pending: '⏳ Pending', approved: '✅ Approved', denied: '❌ Denied' }[r.status] || r.status;
+    const dirTag = isProfessor ? '' : (r.fromStudent === me ? '<span style="font-size:11px;color:var(--sub);">(You sent)</span>' : '<span style="font-size:11px;color:var(--primary);">(Sent to you)</span>');
+    const approveBtn = isProfessor && r.status === 'pending'
+      ? `<div style="display:flex;gap:8px;margin-top:10px;">
+           <button class="btn small" onclick="approveSwap('${r.id}')">✅ Approve</button>
+           <button class="btn danger small" onclick="denySwap('${r.id}')">❌ Deny</button>
+         </div>` : '';
+    return `
+    <div class="swap-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="swap-title">${daysArr[r.dayOfWeek]} ${r.dateStr} &nbsp;${fmt(r.start)} – ${fmt(r.end)} &nbsp;<span style="font-weight:400;font-size:13px;">${TYPES[r.type]?.label || r.type}</span></div>
+          <div class="swap-meta">
+            <strong>${r.fromStudent}</strong> → <strong>${r.toStudent}</strong> ${dirTag}
+            ${r.reason ? `<br>Reason: "${r.reason}"` : ''}
+          </div>
+        </div>
+        <span class="swap-status ${statusClass}">${statusLabel}</span>
+      </div>
+      ${approveBtn}
+    </div>`;
+  }).join('');
+}
+
+window.approveSwap = function(id) {
+  const req = state.data.swapRequests.find(r => r.id === id);
+  if (!req) return;
+  if (!confirm(`Approve swap?\n${req.fromStudent}'s shift on ${req.dateStr} (${fmt(req.start)}–${fmt(req.end)}) will be moved to ${req.toStudent}.`)) return;
+
+  // Move shift from fromStudent to toStudent
+  const weekShifts = state.data.shifts[req.weekStr];
+  if (weekShifts) {
+    const shift = weekShifts.find(s => s.id === req.shiftId);
+    if (shift) shift.student = req.toStudent;
+  }
+  req.status = 'approved';
+  saveData(); renderAll(); renderSwaps();
+};
+
+window.denySwap = function(id) {
+  const req = state.data.swapRequests.find(r => r.id === id);
+  if (!req) return;
+  req.status = 'denied';
+  saveData(); renderSwaps();
+};
 
 // Start app
 init();
