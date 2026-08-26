@@ -499,109 +499,79 @@
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
-    /* Master Schedule Table */
-    .schedule-card-wrapper {
-      padding: 0;
-      overflow: hidden;
-    }
-
-    .schedule-banner {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 18px 24px;
-      background: linear-gradient(135deg, #4338ca 0%, #6366f1 55%, #818cf8 100%);
-      border-radius: 12px 12px 0 0;
-      flex-wrap: wrap;
-    }
-
-    .schedule-banner-icon {
-      width: 46px;
-      height: 46px;
-      background: rgba(255,255,255,0.18);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .schedule-banner-text {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .schedule-banner-text h3 {
-      margin: 0 0 2px;
-      font-size: 17px;
-      font-weight: 700;
-      color: white;
-    }
-
-    .schedule-banner-text p {
-      margin: 0;
-      font-size: 12px;
-      color: rgba(255,255,255,0.82);
-      line-height: 1.4;
-    }
-
-    .schedule-export-btn {
-      background: white !important;
-      color: #4338ca !important;
-      font-weight: 700;
-      white-space: nowrap;
-      flex-shrink: 0;
-      border: none !important;
-      padding: 9px 16px;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-    .schedule-export-btn:hover {
-      background: #eef2ff !important;
-      transform: translateY(-1px);
-    }
-
-    .schedule-body {
-      padding: 16px 24px 20px;
-    }
-
+    /* Master Schedule Toolbar */
     .toolbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       margin-bottom: 14px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 10px;
     }
 
     .legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--ink);
+      gap: 6px 12px;
       align-items: center;
     }
 
-    .legend span {
+    .legend-item {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 3px 9px;
-      border-radius: 20px;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      font-weight: 500;
       font-size: 11.5px;
-      color: #374151;
+      font-weight: 500;
+      color: var(--sub);
+      white-space: nowrap;
     }
 
     .swatch {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+      width: 11px;
+      height: 11px;
+      border-radius: 2px;
       display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .legend-override {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #f59e0b;
+      color: white;
+      font-size: 9px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .toolbar-export {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: #16a34a;
+      color: white;
+      border: none;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .toolbar-export:hover {
+      background: #15803d;
+      transform: translateY(-1px);
+    }
+    .toolbar-export svg {
       flex-shrink: 0;
     }
 
@@ -1541,10 +1511,10 @@
       .chip .loc { font-size: 9px; }
 
       /* ── Toolbar / Legend ────────────────────── */
-      .toolbar { gap: 8px; }
-      .legend { gap: 6px; font-size: 11px; }
-      .legend span { font-size: 11px; }
-      .swatch { width: 12px; height: 12px; }
+      .toolbar { gap: 8px; flex-direction: row; align-items: center; padding: 8px 12px; flex-wrap: wrap; }
+      .legend { gap: 5px 10px; }
+      .legend-item { font-size: 11px; }
+      .toolbar-export { padding: 5px 12px; font-size: 11px; }
 
       /* ── Buttons ─────────────────────────────── */
       button.btn { padding: 7px 12px; font-size: 13px; }
@@ -1574,17 +1544,6 @@
       .swap-banner-text h3 { font-size: 15px; }
       .swap-request-btn { width: 100%; margin-top: 4px; justify-content: center; }
       .swap-list-area { padding: 14px; }
-
-      /* ── Schedule Banner ─────────────────────── */
-      .schedule-banner {
-        padding: 14px 16px;
-        gap: 12px;
-        border-radius: 10px 10px 0 0;
-      }
-      .schedule-banner-icon { width: 38px; height: 38px; border-radius: 10px; }
-      .schedule-banner-text h3 { font-size: 15px; }
-      .schedule-export-btn { width: 100%; margin-top: 4px; justify-content: center; }
-      .schedule-body { padding: 12px 14px 16px; }
 
       /* ── Avail Banner ────────────────────────── */
       .avail-banner {
@@ -1775,47 +1734,32 @@
 
       <!-- Master Schedule Tab -->
       <div id="tab-schedule">
-        <div class="card schedule-card-wrapper">
-
-          <!-- Banner Header -->
-          <div class="schedule-banner">
-            <div class="schedule-banner-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="3" x2="15" y1="15" y2="15"/><line x1="3" x2="12" y1="19" y2="19"/></svg>
+        <div class="card">
+          <div class="toolbar">
+            <div class="legend" id="scheduleLegend">
+              <span class="legend-item"><span class="swatch" style="background:var(--regular-bg);border:1px solid rgba(0,0,0,0.08)"></span>Scheduled</span>
+              <span class="legend-item"><span class="swatch" style="background:var(--training-bg);border:1px solid rgba(0,0,0,0.08)"></span>Training</span>
+              <span class="legend-item"><span class="swatch" style="background:var(--event-bg);border:1px solid rgba(0,0,0,0.08)"></span>Event</span>
+              <span class="legend-item"><span class="swatch" style="background:var(--closed-bg);border:1px solid rgba(0,0,0,0.08)"></span>OUE Hours</span>
+              <span class="legend-item"><span class="swatch" style="background:var(--meeting-bg,#e0e7ff);border:1px solid rgba(0,0,0,0.08)"></span>Meeting</span>
+              <span class="legend-item"><span class="swatch" style="background:var(--oncall-bg,#fef3c7);border:1px solid rgba(0,0,0,0.08)"></span>On-Call</span>
+              <span class="legend-item"><span class="swatch" style="background:var(--unavail-bg);border:1px solid rgba(0,0,0,0.08)"></span>Unavailable</span>
+              <span class="legend-item"><span class="legend-override">!</span>Override</span>
             </div>
-            <div class="schedule-banner-text">
-              <h3>Master Schedule</h3>
-              <p>Weekly shift overview for all ambassadors. Click any cell to assign or edit shifts.</p>
-            </div>
-            <button class="btn schedule-export-btn" id="exportBtn">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <button class="toolbar-export" id="exportBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               Export to Excel
             </button>
           </div>
 
-          <!-- Body: Legend + Table -->
-          <div class="schedule-body">
-            <div class="toolbar">
-              <div class="legend" id="scheduleLegend">
-                <span><span class="swatch" style="background:var(--regular-bg)"></span>Scheduled</span>
-                <span><span class="swatch" style="background:var(--training-bg)"></span>Training</span>
-                <span><span class="swatch" style="background:var(--event-bg)"></span>Event</span>
-                <span><span class="swatch" style="background:var(--closed-bg)"></span>OUE Hours</span>
-                <span><span class="swatch" style="background:var(--meeting-bg)"></span>Meeting</span>
-                <span><span class="swatch" style="background:var(--oncall-bg)"></span>On-Call</span>
-                <span><span class="swatch" style="background:var(--unavail-bg)"></span>Unavailable</span>
-                <span><span class="chip-overridden" style="position:static;display:inline-flex;margin-right:2px;">!</span>Override</span>
-              </div>
-            </div>
+          <div id="readOnlyWarning" class="conflict-box" style="display:none; margin-bottom: 16px;">
+            <strong>Viewing Past Week:</strong> This schedule is locked and cannot be edited.
+          </div>
 
-            <div id="readOnlyWarning" class="conflict-box" style="display:none; margin-bottom: 14px;">
-              <strong>Viewing Past Week:</strong> This schedule is locked and cannot be edited.
-            </div>
-
-            <div class="table-container">
-              <table id="scheduleTable">
-                <!-- Rendered via JS -->
-              </table>
-            </div>
+          <div class="table-container">
+            <table id="scheduleTable">
+              <!-- Rendered via JS -->
+            </table>
           </div>
         </div>
       </div>
