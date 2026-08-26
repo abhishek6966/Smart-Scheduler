@@ -1231,22 +1231,26 @@ function openShiftModal(student, dayOfWeek, dateStr, existing) {
         return;
       }
       
-      // Calculate total hours for the week to find the one with minimum hours
-      let bestStudent = null;
+      // Calculate total hours for the week to find the ones with minimum hours
+      let bestStudents = [];
       let minHours = Infinity;
       
       availableStudents.forEach(st => {
         const total = weekShifts.filter(s => s.student === st).reduce((sum, s) => sum + duration(s.start, s.end), 0);
         if (total < minHours) {
           minHours = total;
-          bestStudent = st;
+          bestStudents = [st];
+        } else if (total === minHours) {
+          bestStudents.push(st);
         }
       });
       
       document.getElementById('smartSuggestBox').style.display = 'block';
+      let studentText = bestStudents.length > 1 ? bestStudents.slice(0, -1).join(', ') + ' and ' + bestStudents[bestStudents.length - 1] : bestStudents[0];
+      
       document.getElementById('smartSuggestBox').innerHTML = `
         <div class="suggest-box">
-          <strong>Smart Suggestion:</strong> Assign to <strong>${bestStudent}</strong>.<br>
+          <strong>Smart Suggestion:</strong> Assign to <strong>${studentText}</strong>.<br>
           They are fully available and currently have only ${Math.round(minHours*10)/10} hours scheduled this week.
         </div>
       `;
