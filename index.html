@@ -214,7 +214,11 @@
       letter-spacing: 0.5px;
     }
 
-    .auth-card select,
+    /* Hide native selects but keep them functional for JS */
+    .auth-card select {
+      display: none !important;
+    }
+
     .auth-card input {
       width: 100%;
       padding: 12px 16px;
@@ -226,19 +230,125 @@
       font-family: inherit;
       outline: none;
       transition: border-color 0.2s, background 0.2s;
+      box-sizing: border-box;
     }
 
-    .auth-card select option {
-      background: #1e293b; /* Dark sleek background */
-      color: #ffffff;
-      padding: 12px;
-    }
-
-    .auth-card select:focus,
     .auth-card input:focus {
       border-color: rgba(255, 255, 255, 0.5);
       background: rgba(255, 255, 255, 0.15);
     }
+
+    /* ── Custom Dropdown ─────────────────────────── */
+    .custom-dropdown {
+      position: relative;
+      width: 100%;
+      user-select: none;
+    }
+
+    .custom-dropdown-trigger {
+      width: 100%;
+      padding: 13px 44px 13px 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 15px;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: border-color 0.2s, background 0.2s;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    .custom-dropdown-trigger:hover,
+    .custom-dropdown.open .custom-dropdown-trigger {
+      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .custom-dropdown-trigger .dd-arrow {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      opacity: 0.6;
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+
+    .custom-dropdown.open .custom-dropdown-trigger .dd-arrow {
+      transform: translateY(-50%) rotate(180deg);
+    }
+
+    .custom-dropdown-list {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 50, 0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      overflow: hidden;
+      z-index: 9999;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+
+    .custom-dropdown.open .custom-dropdown-list {
+      max-height: 280px;
+      opacity: 1;
+      overflow-y: auto;
+    }
+
+    .custom-dropdown-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-dropdown-list::-webkit-scrollbar-track { background: transparent; }
+    .custom-dropdown-list::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+    }
+
+    .custom-dropdown-option {
+      padding: 12px 16px;
+      color: rgba(255,255,255,0.85);
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .custom-dropdown-option:hover {
+      background: rgba(99, 149, 255, 0.25);
+      color: #ffffff;
+    }
+
+    .custom-dropdown-option.selected {
+      background: rgba(99, 149, 255, 0.35);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .custom-dropdown-option .opt-check {
+      margin-left: auto;
+      opacity: 0;
+      color: #93c5fd;
+      font-size: 16px;
+    }
+    .custom-dropdown-option.selected .opt-check { opacity: 1; }
 
     .auth-card input::placeholder {
       color: rgba(255, 255, 255, 0.4);
@@ -1024,15 +1134,40 @@
 
       <div class="auth-field">
         <label>Your Role</label>
+        <!-- Hidden native select keeps auth logic working -->
         <select id="roleSelect" autocomplete="off">
           <option value="student">👤 Student</option>
           <option value="professor">🎓 Admin</option>
         </select>
+        <!-- Custom dropdown UI -->
+        <div class="custom-dropdown" id="roleDropdown">
+          <div class="custom-dropdown-trigger" id="roleDropdownTrigger">
+            <span id="roleDropdownLabel">👤 Student</span>
+            <svg class="dd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="custom-dropdown-list" id="roleDropdownList">
+            <div class="custom-dropdown-option selected" data-value="student">
+              👤 Student <span class="opt-check">✓</span>
+            </div>
+            <div class="custom-dropdown-option" data-value="professor">
+              🎓 Admin <span class="opt-check">✓</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="studentSelectWrapper" class="auth-field">
         <label>Select Your Name</label>
+        <!-- Hidden native select keeps auth logic working -->
         <select id="studentSelect"></select>
+        <!-- Custom dropdown UI -->
+        <div class="custom-dropdown" id="nameDropdown">
+          <div class="custom-dropdown-trigger" id="nameDropdownTrigger">
+            <span id="nameDropdownLabel">Select your name…</span>
+            <svg class="dd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="custom-dropdown-list" id="nameDropdownList"></div>
+        </div>
       </div>
 
       <div id="profPasswordWrapper" class="auth-field" style="display: none;">
@@ -1542,21 +1677,75 @@
       }
     }
 
+    // --- Custom Dropdown Logic (Login Page) ---
+    function initCustomDropdown(dropdownEl, listEl, labelEl, nativeSelect, onChange) {
+      const trigger = dropdownEl.querySelector('.custom-dropdown-trigger');
+
+      // Open/close on click
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdownEl.classList.contains('open');
+        document.querySelectorAll('.custom-dropdown.open').forEach(d => d.classList.remove('open'));
+        if (!isOpen) dropdownEl.classList.add('open');
+      });
+
+      // Option click
+      listEl.addEventListener('click', (e) => {
+        const opt = e.target.closest('.custom-dropdown-option');
+        if (!opt) return;
+        const val = opt.dataset.value;
+        // Update label
+        labelEl.textContent = opt.textContent.replace('✓', '').trim();
+        // Update native select
+        nativeSelect.value = val;
+        // Update selected class
+        listEl.querySelectorAll('.custom-dropdown-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        // Close
+        dropdownEl.classList.remove('open');
+        // Fire callback
+        if (onChange) onChange(val);
+      });
+
+      // Close on outside click
+      document.addEventListener('click', () => dropdownEl.classList.remove('open'));
+    }
+
     // --- Auth Logic ---
     function setupAuthListeners() {
       const roleSelect = document.getElementById('roleSelect');
       const profPasswordWrapper = document.getElementById('profPasswordWrapper');
       const studentSelectWrapper = document.getElementById('studentSelectWrapper');
 
-      roleSelect.addEventListener('change', (e) => {
-        if (e.target.value === 'professor') {
+      function handleRoleChange(role) {
+        if (role === 'professor') {
           profPasswordWrapper.style.display = 'block';
           studentSelectWrapper.style.display = 'none';
         } else {
           profPasswordWrapper.style.display = 'none';
           studentSelectWrapper.style.display = 'block';
         }
-      });
+      }
+
+      roleSelect.addEventListener('change', (e) => handleRoleChange(e.target.value));
+
+      // Initialize Role custom dropdown
+      initCustomDropdown(
+        document.getElementById('roleDropdown'),
+        document.getElementById('roleDropdownList'),
+        document.getElementById('roleDropdownLabel'),
+        roleSelect,
+        handleRoleChange
+      );
+
+      // Initialize Name custom dropdown (list is populated later by populateStudentSelects)
+      initCustomDropdown(
+        document.getElementById('nameDropdown'),
+        document.getElementById('nameDropdownList'),
+        document.getElementById('nameDropdownLabel'),
+        document.getElementById('studentSelect'),
+        null
+      );
 
       // Fire on load — use setTimeout to run AFTER browser autocomplete restores values
       setTimeout(() => roleSelect.dispatchEvent(new Event('change')), 50);
@@ -1608,9 +1797,24 @@
 
       const activeStudents = state.data.students.filter(s => !state.data.inactiveStudents.includes(s));
       const options = activeStudents.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
-      document.getElementById('studentSelect').innerHTML = options;
+      const studentSelectEl = document.getElementById('studentSelect');
+      studentSelectEl.innerHTML = options;
       if (document.getElementById('profStudentSelector')) {
         document.getElementById('profStudentSelector').innerHTML = options;
+      }
+
+      // Also rebuild the custom name dropdown list
+      const nameDropdownList = document.getElementById('nameDropdownList');
+      const nameDropdownLabel = document.getElementById('nameDropdownLabel');
+      if (nameDropdownList) {
+        const firstStudent = activeStudents[0] || '';
+        nameDropdownList.innerHTML = activeStudents.map((s, i) =>
+          `<div class="custom-dropdown-option${i === 0 ? ' selected' : ''}" data-value="${s.replace(/"/g, '&quot;')}">${s}<span class="opt-check">✓</span></div>`
+        ).join('');
+        if (nameDropdownLabel && firstStudent) {
+          nameDropdownLabel.textContent = firstStudent;
+          studentSelectEl.value = firstStudent;
+        }
       }
     }
 
