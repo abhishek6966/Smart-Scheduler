@@ -528,6 +528,27 @@ function init() {
   state.currentWeekStartStr = toDateStr(monday);
   
   populateStudentSelects();
+
+  // Restore session if exists
+  const savedRole = sessionStorage.getItem('userRole');
+  const savedName = sessionStorage.getItem('userName');
+  if (savedRole && savedName) {
+    state.userRole = savedRole;
+    state.userName = savedName;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    applyRolePermissions();
+    
+    // Restore active tab
+    const savedTab = sessionStorage.getItem('activeTab');
+    if (savedTab) {
+      setTimeout(() => {
+        const tabBtn = document.querySelector(`nav.tabs button[data-tab="${savedTab}"]`);
+        if (tabBtn) tabBtn.click();
+      }, 0);
+    }
+    renderAll();
+  }
 }
 
 // --- Utils ---
@@ -748,6 +769,10 @@ function setupAuthListeners() {
       state.userName = document.getElementById('studentSelect').value;
     }
     
+    sessionStorage.setItem('userRole', state.userRole);
+    sessionStorage.setItem('userName', state.userName);
+    sessionStorage.setItem('activeTab', 'schedule');
+
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     
@@ -758,6 +783,7 @@ function setupAuthListeners() {
   document.getElementById('logoutBtn').addEventListener('click', () => {
     state.userRole = null;
     state.userName = null;
+    sessionStorage.clear();
     document.getElementById('authScreen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
     document.getElementById('profPassword').value = '';
@@ -798,6 +824,7 @@ function setupAppListeners() {
       ['schedule', 'availability', 'swaps', 'conflicts'].forEach(t => {
         document.getElementById('tab-' + t).style.display = (t === btn.dataset.tab) ? 'block' : 'none';
       });
+      sessionStorage.setItem('activeTab', btn.dataset.tab);
       if (btn.dataset.tab === 'swaps') renderSwaps();
     });
   });
