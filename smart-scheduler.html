@@ -355,7 +355,7 @@
 
     <div class="auth-field">
       <label>Your Role</label>
-      <select id="roleSelect">
+      <select id="roleSelect" autocomplete="off">
         <option value="student">👤 Student</option>
         <option value="professor">🎓 Admin</option>
       </select>
@@ -839,8 +839,10 @@ function setupAuthListeners() {
     }
   });
   
-  // Force trigger on load so UI is in sync if browser remembers the select value
-  roleSelect.dispatchEvent(new Event('change'));
+  // Fire on load — use setTimeout to run AFTER browser autocomplete restores values
+  setTimeout(() => roleSelect.dispatchEvent(new Event('change')), 50);
+  // Also fire on window load as a second safety net for slow browsers
+  window.addEventListener('load', () => setTimeout(() => roleSelect.dispatchEvent(new Event('change')), 100));
   
   document.getElementById('loginBtn').addEventListener('click', () => {
     const role = roleSelect.value;
