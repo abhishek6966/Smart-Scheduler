@@ -344,15 +344,15 @@
     <span></span><span></span><span></span><span></span><span></span>
   </div>
   <div class="auth-card">
-    <div class="auth-logo">📅</div>
+    <div class="auth-logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg></div>
     <h2>Smart Scheduler</h2>
     <p class="auth-subtitle">UCC Ambassador Schedule Management</p>
 
     <div class="auth-field">
       <label>Your Role</label>
       <select id="roleSelect">
-        <option value="student">👤 Student</option>
-        <option value="professor">🎓 Professor / Admin</option>
+        <option value="student"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:text-bottom;"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Student</option>
+        <option value="professor"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:text-bottom;"><path d="M21.42 10.922a2 2 0 0 1-.019 3.837l-8.5 4.364a2 2 0 0 1-1.802 0l-8.5-4.364a2 2 0 0 1-.019-3.837l8.5-4.364a2 2 0 0 1 1.84 0l8.5 4.364Z"/><path d="M14 22v-6.574"/><path d="M22 13v6"/><path d="M10 22v-6.574"/><path d="M10 22a2 2 0 1 0 4 0"/></svg> Professor / Admin</option>
       </select>
     </div>
 
@@ -368,7 +368,7 @@
     </div>
 
     <button id="loginBtn" class="auth-btn">Enter Scheduler →</button>
-    <p class="auth-badge">🔒 Secure · Real-time sync via Google Sheets</p>
+    <p class="auth-badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure · Real-time sync via Google Sheets</p>
   </div>
 </div>
 
@@ -391,7 +391,7 @@
     <nav class="tabs">
       <button data-tab="schedule" class="active">Master Schedule</button>
       <button data-tab="availability">Availability & Classes</button>
-      <button data-tab="swaps" id="tab-swaps-btn">🔄 Shift Swaps</button>
+      <button data-tab="swaps" id="tab-swaps-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg> Shift Swaps</button>
       <button data-tab="conflicts" id="tab-conflicts-btn">Conflicts<span id="conflictBadge" style="display:none;" class="tab-badge"></span></button>
     </nav>
 
@@ -464,7 +464,7 @@
       <div class="card">
         <div class="flex-between" style="margin-bottom:20px;">
           <div>
-            <h3 style="margin:0 0 4px;">🔄 Shift Swap Requests</h3>
+            <h3 style="margin:0 0 4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg> Shift Swap Requests</h3>
             <p style="margin:0; font-size:13px; color:var(--sub);">Request a classmate to cover your shift. Professor approves or denies.</p>
           </div>
           <button class="btn" id="newSwapBtn">+ Request a Swap</button>
@@ -565,7 +565,7 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
 }
 function escAttr(s) { return s.replace(/"/g, '&quot;'); }
 function showToast(message, type = 'success', duration = 3500) {
-  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const icons = { success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>', error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>', info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>' };
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
@@ -936,7 +936,7 @@ function renderSchedule() {
         const isRecurring = u.dateStr === undefined;
         const noteAttr = u.note ? ` title="${escAttr(u.note)}"` : '';
         html += `<span class="chip" style="background:var(--unavail-bg);color:var(--unavail-tx)"${noteAttr}>
-          ${isRecurring ? '🔄 ' : ''}Unavail: ${fmt(u.start)} - ${fmt(u.end)}
+          ${isRecurring ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg> ' : ''}Unavail: ${fmt(u.start)} - ${fmt(u.end)}
         </span>`;
       });
       
@@ -1068,7 +1068,7 @@ function renderConflicts() {
   }
   
   if (count === 0) {
-    container.innerHTML = '<p style="color:var(--sub);">No conflicts found for the current week. ✅</p>';
+    container.innerHTML = '<p style="color:var(--sub);">No conflicts found for the current week. <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></p>';
   } else {
     container.innerHTML = `<h3>Conflicts (${count})</h3>` + conflictsHtml;
   }
@@ -1409,7 +1409,7 @@ function openSwapRequestModal() {
   const myShifts = weekShifts.filter(s => s.student === me);
   const daysArr = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const typeColors = { regular:'#1f2937', training:'#854d0e', event:'#1e3a8a', closed:'#991b1b' };
-  const typeIcons  = { regular:'📋', training:'📚', event:'🎯', closed:'🔒' };
+  const typeIcons  = { regular:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>', training:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>', event:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>', closed:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' };
 
   if (myShifts.length === 0) {
     showToast('You have no shifts scheduled this week to swap.', 'info');
@@ -1429,7 +1429,7 @@ function openSwapRequestModal() {
     <div class="modal" style="width:560px;">
       <!-- Header -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line);">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;">🔄</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></div>
         <div>
           <div style="font-size:17px;font-weight:700;color:var(--ink);">Request a Shift Swap</div>
           <div style="font-size:12px;color:var(--sub);margin-top:1px;">Cover: someone free takes your shift &nbsp;·&nbsp; Exchange: trade slots with a classmate</div>
@@ -1438,8 +1438,8 @@ function openSwapRequestModal() {
 
       <!-- Mode Toggle -->
       <div style="display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:16px;">
-        <button id="modeCover" style="flex:1;padding:10px;border:none;background:#2563eb;color:#fff;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">📤 Cover My Shift</button>
-        <button id="modeExchange" style="flex:1;padding:10px;border:none;background:#f3f4f6;color:var(--sub);font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;">🔁 Exchange Shifts</button>
+        <button id="modeCover" style="flex:1;padding:10px;border:none;background:#2563eb;color:#fff;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Cover My Shift</button>
+        <button id="modeExchange" style="flex:1;padding:10px;border:none;background:#f3f4f6;color:var(--sub);font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg> Exchange Shifts</button>
       </div>
 
       <div class="field">
@@ -1475,14 +1475,14 @@ function openSwapRequestModal() {
     const sec = document.getElementById('swapAvailableSection');
     sec.innerHTML = `
       <div class="swap-shift-preview">
-        <div class="swap-shift-icon">${typeIcons[shift.type] || '📋'}</div>
+        <div class="swap-shift-icon">${typeIcons[shift.type] || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>'}</div>
         <div class="swap-shift-info">
           <strong>${daysArr[shift.dayOfWeek]} ${dateStr} &nbsp;·&nbsp; ${fmt(shift.start)} – ${fmt(shift.end)}</strong>
           <span style="color:${typeColors[shift.type]||'#374151'};font-weight:600;">${TYPES[shift.type]?.label || shift.type}</span>
         </div>
       </div>
       ${ available.length === 0
-          ? `<div class="conflict-box" style="border-radius:10px;">⚠️ No classmates are free during this shift window. Try Exchange mode instead.</div>`
+          ? `<div class="conflict-box" style="border-radius:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> No classmates are free during this shift window. Try Exchange mode instead.</div>`
           : `<div style="margin-bottom:8px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Classmate to cover your shift (${available.length} free)</div>
              ${ available.map(st => {
                 const ini = st.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -1509,14 +1509,14 @@ function openSwapRequestModal() {
 
     sec.innerHTML = `
       <div class="swap-shift-preview" style="border-color:#e9d5ff;background:#faf5ff;">
-        <div class="swap-shift-icon">${typeIcons[myShift.type] || '📋'}</div>
+        <div class="swap-shift-icon">${typeIcons[myShift.type] || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>'}</div>
         <div class="swap-shift-info">
           <strong>${daysArr[myShift.dayOfWeek]} ${myDateStr} &nbsp;·&nbsp; ${fmt(myShift.start)} – ${fmt(myShift.end)}</strong>
           <span style="color:#7c3aed;font-weight:600;">Your shift to trade away</span>
         </div>
       </div>
       ${ peers.length === 0
-          ? `<div class="conflict-box" style="border-radius:10px;">⚠️ No other students have shifts this week to exchange.</div>`
+          ? `<div class="conflict-box" style="border-radius:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> No other students have shifts this week to exchange.</div>`
           : `<div style="margin-bottom:8px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);">Select a classmate &amp; their shift to exchange with</div>
              ${ peers.map(st => {
                 const ini = st.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -1532,9 +1532,9 @@ function openSwapRequestModal() {
                         <input type="radio" name="swapTo" value="${escAttr(st)}" data-toshiftid="${escAttr(ts.id)}">
                         <div style="flex:1;">
                           <div style="font-weight:600;font-size:13px;">${daysArr[ts.dayOfWeek]} ${tsDate} · ${fmt(ts.start)} – ${fmt(ts.end)}</div>
-                          <div style="font-size:11px;color:${typeColors[ts.type]||'#374151'};font-weight:600;margin-top:2px;">${typeIcons[ts.type]||'📋'} ${TYPES[ts.type]?.label||ts.type}</div>
+                          <div style="font-size:11px;color:${typeColors[ts.type]||'#374151'};font-weight:600;margin-top:2px;">${typeIcons[ts.type]||'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>'} ${TYPES[ts.type]?.label||ts.type}</div>
                         </div>
-                        <span class="peer-badge" style="background:#f3e8ff;color:#7c3aed;">🔁 Trade</span>
+                        <span class="peer-badge" style="background:#f3e8ff;color:#7c3aed;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg> Trade</span>
                       </label>`;
                   }).join('') }
                 </div>`;
@@ -1634,23 +1634,23 @@ function renderSwaps() {
     : state.data.swapRequests.filter(r => r.fromStudent === me || r.toStudent === me).reverse();
 
   if (visible.length === 0) {
-    list.innerHTML = `<div class="no-swap"><div class="no-swap-icon">🔄</div>No swap requests yet.<br><span style="font-size:13px;">Click "+ Request a Swap" above to get started.</span></div>`;
+    list.innerHTML = `<div class="no-swap"><div class="no-swap-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></div>No swap requests yet.<br><span style="font-size:13px;">Click "+ Request a Swap" above to get started.</span></div>`;
     return;
   }
 
   list.innerHTML = visible.map(r => {
     const isExchange = r.swapType === 'exchange';
     const statusClass = r.status;
-    const statusLabel = { pending: '⏳ Pending', approved: '✅ Approved', denied: '❌ Denied' }[r.status] || r.status;
+    const statusLabel = { pending: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pending', approved: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Approved', denied: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg> Denied' }[r.status] || r.status;
     const fromInitials = r.fromStudent.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const toInitials   = r.toStudent.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const dirTag = isProfessor ? '' : (r.fromStudent === me
       ? `<span style="font-size:11px;background:#f3f4f6;padding:2px 8px;border-radius:10px;color:var(--sub);">You sent</span>`
       : `<span style="font-size:11px;background:#eff6ff;padding:2px 8px;border-radius:10px;color:var(--primary);font-weight:600;">Incoming request</span>`);
-    const typeIcon = {regular:'📋',training:'📚',event:'🎯',closed:'🔒'}[r.type] || '📋';
+    const typeIcon = {regular:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>',training:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>',event:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',closed:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'}[r.type] || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
     const modeTag = isExchange
-      ? `<span style="font-size:11px;background:#f3e8ff;color:#7c3aed;font-weight:700;padding:2px 8px;border-radius:10px;">🔁 Exchange</span>`
-      : `<span style="font-size:11px;background:#eff6ff;color:#1d4ed8;font-weight:700;padding:2px 8px;border-radius:10px;">📤 Cover</span>`;
+      ? `<span style="font-size:11px;background:#f3e8ff;color:#7c3aed;font-weight:700;padding:2px 8px;border-radius:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg> Exchange</span>`
+      : `<span style="font-size:11px;background:#eff6ff;color:#1d4ed8;font-weight:700;padding:2px 8px;border-radius:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Cover</span>`;
     const daysArr2 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
     const shiftDetails = isExchange
@@ -1676,8 +1676,8 @@ function renderSwaps() {
 
     const approveBtn = isProfessor && r.status === 'pending'
       ? `<div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
-           <button class="btn small" style="background:var(--success);flex:1;" onclick="approveSwap('${r.id}')">✅ Approve &amp; Apply</button>
-           <button class="btn danger small" style="flex:1;" onclick="denySwap('${r.id}')">❌ Deny</button>
+           <button class="btn small" style="background:var(--success);flex:1;" onclick="approveSwap('${r.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Approve &amp; Apply</button>
+           <button class="btn danger small" style="flex:1;" onclick="denySwap('${r.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg> Deny</button>
          </div>` : '';
 
     return `
@@ -1692,7 +1692,7 @@ function renderSwaps() {
         <span class="swap-status ${statusClass}">${statusLabel}</span>
       </div>
       ${shiftDetails}
-      ${r.reason ? `<div style="margin-top:8px;font-size:13px;color:var(--sub);">💬 "${r.reason}"</div>` : ''}
+      ${r.reason ? `<div style="margin-top:8px;font-size:13px;color:var(--sub);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg> "${r.reason}"</div>` : ''}
       ${approveBtn}
     </div>`;
   }).join('');
@@ -1707,7 +1707,7 @@ window.approveSwap = function(id) {
   confirmRoot.innerHTML = `
   <div class="modal-backdrop" id="confirmBackdrop">
     <div class="modal" style="width:420px;text-align:center;">
-      <div style="font-size:36px;margin-bottom:12px;">🔄</div>
+      <div style="font-size:36px;margin-bottom:12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></div>
       <div style="font-size:17px;font-weight:700;margin-bottom:8px;">Approve Swap?</div>
       <p style="color:var(--sub);font-size:14px;margin:0 0 24px;line-height:1.6;">
         <strong>${req.fromStudent}</strong>'s shift on <strong>${req.dateStr}</strong><br>
@@ -1716,7 +1716,7 @@ window.approveSwap = function(id) {
       </p>
       <div style="display:flex;gap:10px;">
         <button class="btn secondary" style="flex:1;" id="confirmCancel">Cancel</button>
-        <button class="btn" style="flex:1;background:var(--success);" id="confirmOk">✅ Yes, Approve</button>
+        <button class="btn" style="flex:1;background:var(--success);" id="confirmOk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Yes, Approve</button>
       </div>
     </div>
   </div>`;
