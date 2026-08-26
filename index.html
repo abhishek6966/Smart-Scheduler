@@ -537,23 +537,19 @@
       font-size: 13px;
     }
 
-    /* Sticky first two columns */
-    .sticky-col-1,
-    .sticky-col-2 {
+    /* Sticky first column only */
+    .sticky-col-1 {
       position: sticky;
+      left: 0;
       z-index: 2;
       background: #fff;
+      min-width: 72px;
+      max-width: 72px;
+      box-shadow: 2px 0 6px -2px rgba(0,0,0,0.10);
     }
-    .sticky-col-1 { left: 0; min-width: 72px; max-width: 72px; }
-    .sticky-col-2 { left: 72px; min-width: 90px; max-width: 90px; }
-    thead .sticky-col-1,
-    thead .sticky-col-2 {
+    thead .sticky-col-1 {
       background: #f9fafb;
       z-index: 3;
-    }
-    /* Subtle right shadow on last sticky col */
-    .sticky-col-2 {
-      box-shadow: 2px 0 6px -2px rgba(0,0,0,0.10);
     }
 
     th,
@@ -2735,7 +2731,7 @@
 
       const spCfg = getSpecialDayConfig();
 
-      let html = '<thead><tr><th class="sticky-col-1">First Name</th><th class="sticky-col-2">Last Name</th>';
+      let html = '<thead><tr><th class="sticky-col-1">First Name</th><th>Last Name</th>';
       days.forEach(d => { 
         const specialType = (state.data.specialDays && state.data.specialDays[d.dateStr]) || null;
         let headerStyle = '';
@@ -2763,7 +2759,7 @@
       });
       activeOrScheduledStudents.forEach(student => {
         let studentTotalHours = 0;
-        html += `<tr><td class="sticky-col-1" style="font-weight:500;">${firstName(student)}</td><td class="sticky-col-2" style="font-weight:500;color:var(--sub);">${lastName(student)}</td>`;
+        html += `<tr><td class="sticky-col-1" style="font-weight:500;">${firstName(student)}</td><td style="font-weight:500;color:var(--sub);">${lastName(student)}</td>`;
 
         days.forEach((d, dayIdx) => {
           const dayShifts = weekShifts.filter(s => s.student === student && s.dayOfWeek === dayIdx);
