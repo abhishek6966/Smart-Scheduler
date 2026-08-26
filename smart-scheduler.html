@@ -294,6 +294,32 @@
   }
   .no-swap .no-swap-icon { font-size: 40px; margin-bottom: 8px; }
 
+  /* Toast Notifications */
+  #toastContainer {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    display: inline-flex; align-items: center; gap: 10px;
+    background: #1f2937; color: #fff;
+    padding: 12px 20px; border-radius: 50px;
+    font-size: 14px; font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    animation: toastIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  .toast.success { background: linear-gradient(135deg,#059669,#047857); }
+  .toast.error   { background: linear-gradient(135deg,#dc2626,#b91c1c); }
+  .toast.info    { background: linear-gradient(135deg,#2563eb,#7c3aed); }
+  @keyframes toastIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  @keyframes toastOut {
+    from { transform: translateY(0);    opacity: 1; }
+    to   { transform: translateY(20px); opacity: 0; }
+  }
 
 </style>
 </head>
@@ -444,6 +470,7 @@
 </div>
 
 <div id="modalRoot"></div>
+<div id="toastContainer"></div>
 
 <script>
 // --- Data & State ---
@@ -523,6 +550,18 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
   return as < be && bs < ae;
 }
 function escAttr(s) { return s.replace(/"/g, '&quot;'); }
+function showToast(message, type = 'success', duration = 3500) {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${icons[type] || ''}</span><span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
 
 // --- Configuration ---
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVxR8aMt_mWsQJsATc5xRoXTMwnbi0c66VZS7QwQ8NIze4_71j83uHmdJjma1W82cN/exec';
@@ -1346,7 +1385,7 @@ function openSwapRequestModal() {
   const daysArr = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   if (myShifts.length === 0) {
-    alert('You have no shifts scheduled this week to swap.');
+    showToast('You have no shifts scheduled this week to swap.', 'info');
     return;
   }
 
@@ -1418,7 +1457,6 @@ function openSwapRequestModal() {
                 <div class="peer-avatar">${initials}</div>
                 <span class="peer-name">${st}</span>
                 <span class="peer-badge">✓ Free</span>
-                <div class="peer-check"></div>
               </label>`;
            }).join('')}
           `
@@ -1445,8 +1483,8 @@ function openSwapRequestModal() {
     const toStudentEl = document.querySelector('input[name="swapTo"]:checked');
     const reason = document.getElementById('swapReason').value.trim();
 
-    if (!shift) { alert('Please select a shift.'); return; }
-    if (!toStudentEl) { alert('Please select a classmate to swap with.'); return; }
+    if (!shift) { showToast('Please select a shift.', 'error'); return; }
+    if (!toStudentEl) { showToast('Please select a classmate to swap with.', 'error'); return; }
 
     const dateStr = toDateStr(addDays(state.currentWeekStartStr, shift.dayOfWeek));
     state.data.swapRequests.push({
@@ -1473,7 +1511,7 @@ function openSwapRequestModal() {
     ['schedule','availability','swaps','conflicts'].forEach(t => {
       document.getElementById('tab-' + t).style.display = t === 'swaps' ? 'block' : 'none';
     });
-    alert('✅ Swap request submitted! Waiting for professor approval.');
+    showToast('Swap request submitted! Waiting for professor approval.', 'success');
   };
 }
 
@@ -1541,16 +1579,38 @@ function renderSwaps() {
 window.approveSwap = function(id) {
   const req = state.data.swapRequests.find(r => r.id === id);
   if (!req) return;
-  if (!confirm(`Approve swap?\n${req.fromStudent}'s shift on ${req.dateStr} (${fmt(req.start)}–${fmt(req.end)}) will be moved to ${req.toStudent}.`)) return;
 
-  // Move shift from fromStudent to toStudent
-  const weekShifts = state.data.shifts[req.weekStr];
-  if (weekShifts) {
-    const shift = weekShifts.find(s => s.id === req.shiftId);
-    if (shift) shift.student = req.toStudent;
-  }
-  req.status = 'approved';
-  saveData(); renderAll(); renderSwaps();
+  // Custom inline confirm
+  const confirmRoot = document.getElementById('modalRoot');
+  confirmRoot.innerHTML = `
+  <div class="modal-backdrop" id="confirmBackdrop">
+    <div class="modal" style="width:420px;text-align:center;">
+      <div style="font-size:36px;margin-bottom:12px;">🔄</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:8px;">Approve Swap?</div>
+      <p style="color:var(--sub);font-size:14px;margin:0 0 24px;line-height:1.6;">
+        <strong>${req.fromStudent}</strong>'s shift on <strong>${req.dateStr}</strong><br>
+        (${fmt(req.start)} – ${fmt(req.end)}) will be transferred to<br>
+        <strong>${req.toStudent}</strong>.
+      </p>
+      <div style="display:flex;gap:10px;">
+        <button class="btn secondary" style="flex:1;" id="confirmCancel">Cancel</button>
+        <button class="btn" style="flex:1;background:var(--success);" id="confirmOk">✅ Yes, Approve</button>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('confirmCancel').onclick = () => confirmRoot.innerHTML = '';
+  document.getElementById('confirmOk').onclick = () => {
+    confirmRoot.innerHTML = '';
+    const weekShifts = state.data.shifts[req.weekStr];
+    if (weekShifts) {
+      const shift = weekShifts.find(s => s.id === req.shiftId);
+      if (shift) shift.student = req.toStudent;
+    }
+    req.status = 'approved';
+    saveData(); renderAll(); renderSwaps();
+    showToast(`Swap approved! Shift moved to ${req.toStudent}.`, 'success');
+  };
 };
 
 window.denySwap = function(id) {
@@ -1558,6 +1618,7 @@ window.denySwap = function(id) {
   if (!req) return;
   req.status = 'denied';
   saveData(); renderSwaps();
+  showToast('Swap request denied.', 'error');
 };
 
 // Start app
