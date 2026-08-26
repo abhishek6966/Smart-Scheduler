@@ -1127,6 +1127,194 @@
         opacity: 0;
       }
     }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RESPONSIVE — TABLET  (≤ 1024px)
+    ═══════════════════════════════════════════════════════════════ */
+    @media (max-width: 1024px) {
+      .wrap { padding: 16px 16px 60px; }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
+      }
+      header > div:first-child { width: 100%; }
+      header > div:last-child {
+        width: 100%;
+        align-items: flex-start;
+      }
+
+      h1 { font-size: 20px; margin-bottom: 4px; }
+
+      .week-nav {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .week-nav span { font-size: 14px; }
+
+      /* Sync pill full-width on tablet */
+      #syncStatusPill { width: 100%; justify-content: center; }
+
+      nav.tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 4px;
+        gap: 6px;
+      }
+      nav.tabs::-webkit-scrollbar { display: none; }
+      nav.tabs button {
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+
+      .toolbar {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .legend {
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 12px;
+      }
+
+      .card { padding: 16px; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RESPONSIVE — MOBILE  (≤ 640px)
+    ═══════════════════════════════════════════════════════════════ */
+    @media (max-width: 640px) {
+      .wrap { padding: 10px 10px 80px; }
+
+      /* ── Header ──────────────────────────────── */
+      header {
+        border-radius: 10px;
+        padding: 12px 14px;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      h1 { font-size: 18px; }
+
+      /* Make logout button smaller on mobile */
+      #logoutBtn { padding: 3px 8px; font-size: 11px; }
+
+      .week-nav { gap: 6px; }
+      .week-nav button { padding: 5px 10px; font-size: 12px; }
+      .week-nav span { font-size: 13px; order: -1; width: 100%; text-align: center; }
+      #syncStatusPill { font-size: 10px; padding: 3px 10px; }
+
+      /* ── Tabs ────────────────────────────────── */
+      nav.tabs { margin-bottom: 12px; gap: 4px; }
+      nav.tabs button { padding: 7px 10px; font-size: 12px; }
+
+      /* ── Cards ───────────────────────────────── */
+      .card { padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+
+      /* ── Schedule table — stays scrollable ───── */
+      .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+      }
+      table { font-size: 11px; min-width: 900px; }
+      th, td { padding: 6px; }
+      td.cell { min-width: 110px; }
+      .chip { font-size: 10px; padding: 4px 6px; }
+      .chip .loc { font-size: 9px; }
+
+      /* ── Toolbar / Legend ────────────────────── */
+      .toolbar { gap: 8px; }
+      .legend { gap: 6px; font-size: 11px; }
+      .legend span { font-size: 11px; }
+      .swatch { width: 12px; height: 12px; }
+
+      /* ── Buttons ─────────────────────────────── */
+      button.btn { padding: 7px 12px; font-size: 13px; }
+      button.btn.small { padding: 4px 8px; font-size: 11px; }
+
+      /* ── Modals — full width on mobile ───────── */
+      .modal {
+        width: 96vw !important;
+        max-width: 96vw !important;
+        padding: 18px 14px;
+        border-radius: 16px;
+        max-height: 92vh;
+      }
+      .modal h3 { font-size: 16px; margin-bottom: 14px; }
+      .modal-actions { flex-direction: column; gap: 8px; }
+      .modal-actions button { width: 100%; }
+      .row2 { flex-direction: column; gap: 8px; }
+
+      /* ── Swap cards ──────────────────────────── */
+      .swap-card { padding: 14px; }
+      .swap-card .swap-title { font-size: 14px; }
+      .swap-participants { gap: 6px; }
+      .swap-person-pill { font-size: 12px; padding: 3px 8px; }
+
+      /* ── List rows ───────────────────────────── */
+      .list-row { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; }
+      .flex-between { flex-wrap: wrap; gap: 6px; }
+
+      /* ── Team management ─────────────────────── */
+      #teamRosterContainer > div > div { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+      /* ── Auth screen on small phones ─────────── */
+      .auth-card {
+        padding: 32px 22px 28px;
+        border-radius: 20px;
+      }
+      .auth-card h2 { font-size: 22px; }
+      .auth-subtitle { font-size: 13px; margin-bottom: 24px; }
+      .auth-btn { padding: 13px; font-size: 15px; }
+
+      /* ── Toast on mobile — slightly wider ─────── */
+      .toast { font-size: 13px; padding: 10px 16px; border-radius: 40px; max-width: 90vw; text-align: center; }
+
+      /* ── Conflict boxes ──────────────────────── */
+      .conflict-box, .suggest-box { font-size: 12px; padding: 10px; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RESPONSIVE — SMALL PHONES  (≤ 390px / iPhone SE, Galaxy A etc)
+    ═══════════════════════════════════════════════════════════════ */
+    @media (max-width: 390px) {
+      .wrap { padding: 8px 8px 80px; }
+      h1 { font-size: 16px; }
+      nav.tabs button { padding: 6px 8px; font-size: 11px; }
+      .card { padding: 10px; }
+      table { font-size: 10px; min-width: 800px; }
+      td.cell { min-width: 90px; }
+      .auth-card { padding: 28px 16px 22px; }
+      .auth-card h2 { font-size: 20px; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOUCH IMPROVEMENTS — all touch devices
+    ═══════════════════════════════════════════════════════════════ */
+    @media (hover: none) and (pointer: coarse) {
+      /* Increase tap target sizes */
+      button.btn { min-height: 40px; }
+      button.btn.small { min-height: 32px; }
+      .week-nav button { min-height: 36px; }
+      nav.tabs button { min-height: 40px; }
+
+      /* Remove hover-only hints on touch */
+      td.cell:hover .add-hint { color: #d1d5db; }
+      td.cell:hover { background: transparent; }
+      td.cell:active { background: #f9fafb; }
+
+      /* Peer options — larger touch area */
+      .peer-option { padding: 14px; }
+      .custom-dropdown-option { padding: 14px 16px; }
+    }
   </style>
 </head>
 
