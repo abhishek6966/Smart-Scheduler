@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <title>UCC Ambassador Smart Scheduler</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --bg: #f3f4f6;
@@ -53,7 +54,8 @@
     #authScreen {
       position: fixed;
       inset: 0;
-      background: url('bg.jpg');
+      /* Using a semi-transparent gradient over the image to keep the login text readable */
+      background: linear-gradient(rgba(30, 58, 95, 0.8), rgba(37, 99, 235, 0.6)), url('bg.jpg');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -65,6 +67,83 @@
       overflow: hidden;
     }
 
+    #authScreen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(124, 58, 237, 0.3) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .auth-floating-circles {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .auth-floating-circles span {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      animation: floatUp 12s infinite linear;
+    }
+
+    .auth-floating-circles span:nth-child(1) {
+      width: 80px;
+      height: 80px;
+      left: 10%;
+      animation-delay: 0s;
+    }
+
+    .auth-floating-circles span:nth-child(2) {
+      width: 120px;
+      height: 120px;
+      left: 30%;
+      animation-delay: 3s;
+    }
+
+    .auth-floating-circles span:nth-child(3) {
+      width: 60px;
+      height: 60px;
+      left: 60%;
+      animation-delay: 6s;
+    }
+
+    .auth-floating-circles span:nth-child(4) {
+      width: 100px;
+      height: 100px;
+      left: 80%;
+      animation-delay: 1.5s;
+    }
+
+    .auth-floating-circles span:nth-child(5) {
+      width: 50px;
+      height: 50px;
+      left: 50%;
+      animation-delay: 8s;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translateY(110vh) scale(0.5);
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 1;
+      }
+
+      90% {
+        opacity: 0.5;
+      }
+
+      100% {
+        transform: translateY(-20vh) scale(1.2);
+        opacity: 0;
+      }
+    }
 
     .auth-card {
       background: rgba(255, 255, 255, 0.12);
@@ -139,11 +218,10 @@
     .auth-card input {
       width: 100%;
       padding: 12px 16px;
-      background: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
-      color: #2563eb;
-      font-weight: 500;
+      color: #ffffff;
       font-size: 15px;
       font-family: inherit;
       outline: none;
@@ -152,13 +230,13 @@
 
     .auth-card select option {
       background: #ffffff;
-      color: #2563eb;
+      color: #111827;
     }
 
     .auth-card select:focus,
     .auth-card input:focus {
-      border-color: #2563eb;
-      background: #ffffff;
+      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.15);
     }
 
     .auth-card input::placeholder {
@@ -174,8 +252,8 @@
     .auth-btn {
       width: 100%;
       padding: 14px;
-      background: #ffffff;
-      color: #2563eb;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
       border: none;
       border-radius: 12px;
       cursor: pointer;
@@ -929,6 +1007,9 @@
 <body>
 
   <div id="authScreen">
+    <div class="auth-floating-circles">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
     <div class="auth-card">
       <div class="auth-logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1009,7 +1090,7 @@
                   style="position:static;display:inline-flex;">!</span> Override</span>
             </div>
             <div>
-              <button class="btn secondary" id="exportBtn">Export to CSV</button>
+              <button class="btn secondary" id="exportBtn">Export to Excel</button>
             </div>
           </div>
 
@@ -1580,7 +1661,7 @@
       document.getElementById('profStudentSelector').addEventListener('change', renderAvailability);
 
       // Export
-      document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+      document.getElementById('exportBtn').addEventListener('click', exportToExcel);
 
       // Swap request button
       document.getElementById('newSwapBtn').addEventListener('click', openSwapRequestModal);
@@ -2148,7 +2229,7 @@
     };
 
     // --- Export ---
-    function exportToCSV() {
+    function exportToExcel() {
       const weekShifts = getShiftsForWeek();
       
       const days = [];
@@ -2161,9 +2242,13 @@
         });
       }
 
-      let csv = "First Name,Last Name,";
-      days.forEach(d => { csv += `"${d.label} ${d.dateDisplay}",`; });
-      csv += "Total hrs\n";
+      const aoa = []; // Array of Arrays for SheetJS
+      
+      // Build Header Row
+      const headerRow = ["First Name", "Last Name"];
+      days.forEach(d => { headerRow.push(`${d.label} ${d.dateDisplay}`); });
+      headerRow.push("Total hrs");
+      aoa.push(headerRow);
 
       const activeOrScheduledStudents = state.data.students.filter(st => {
         if (!state.data.inactiveStudents.includes(st)) return true;
@@ -2171,9 +2256,10 @@
         return hasShifts;
       });
 
+      // Build Student Rows
       activeOrScheduledStudents.forEach(student => {
         let studentTotalHours = 0;
-        let row = `"${firstName(student)}","${lastName(student)}",`;
+        let row = [firstName(student), lastName(student)];
 
         days.forEach((d, dayIdx) => {
           const dayShifts = weekShifts.filter(s => s.student === student && s.dayOfWeek === dayIdx);
@@ -2205,16 +2291,15 @@
             cellLines.push(unavText);
           });
 
-          const cellContent = cellLines.join('\n').replace(/"/g, '""'); // escape quotes for CSV
-          row += `"${cellContent}",`;
+          row.push(cellLines.join('\n'));
         });
 
-        row += `"${Math.round(studentTotalHours * 10) / 10}"\n`;
-        csv += row;
+        row.push(Math.round(studentTotalHours * 10) / 10);
+        aoa.push(row);
       });
       
       // Calculate daily totals at the bottom just like the table
-      let dailyTotalsRow = '"Daily total","",';
+      const dailyTotalsRow = ["Daily total", ""];
       let weekTotal = 0;
       days.forEach((d, dayIdx) => {
           let dayTotal = 0;
@@ -2222,18 +2307,33 @@
               if (s.dayOfWeek === dayIdx) dayTotal += duration(s.start, s.end);
           });
           weekTotal += dayTotal;
-          dailyTotalsRow += `"${Math.round(dayTotal * 10) / 10}",`;
+          dailyTotalsRow.push(Math.round(dayTotal * 10) / 10);
       });
-      dailyTotalsRow += `"${Math.round(weekTotal * 10) / 10}"\n`;
-      csv += dailyTotalsRow;
+      dailyTotalsRow.push(Math.round(weekTotal * 10) / 10);
+      aoa.push(dailyTotalsRow);
 
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Schedule_${state.currentWeekStartStr}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      // Create Excel Worksheet
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // Set Column Widths
+      ws['!cols'] = [
+        {wch: 15}, // First Name
+        {wch: 15}, // Last Name
+        {wch: 25}, {wch: 25}, {wch: 25}, {wch: 25}, {wch: 25}, {wch: 25}, {wch: 25}, // Mon-Sun
+        {wch: 10}  // Total
+      ];
+      
+      // Enable text wrapping for all cells in sheet
+      for (let i in ws) {
+         if (i[0] === '!') continue;
+         if (!ws[i].s) ws[i].s = {};
+         ws[i].s.alignment = { wrapText: true, vertical: 'top' };
+      }
+
+      // Create Workbook and Export
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Schedule");
+      XLSX.writeFile(wb, `Schedule_${state.currentWeekStartStr}.xlsx`);
     }
 
     // --- Shift Swap Requests ---
