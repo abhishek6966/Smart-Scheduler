@@ -306,6 +306,14 @@
       pointer-events: none;
     }
 
+    /* Open upwards so bottom options are never cut off by screen/taskbar edge */
+    #nameDropdown .custom-dropdown-list,
+    .custom-dropdown.dropup .custom-dropdown-list {
+      top: auto;
+      bottom: calc(100% + 6px);
+      box-shadow: 0 -12px 40px rgba(0,0,0,0.5);
+    }
+
     .custom-dropdown-list.open {
       max-height: 280px;
       opacity: 1;
