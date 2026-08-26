@@ -1213,7 +1213,7 @@
       <div id="tab-schedule">
         <div class="card">
           <div class="toolbar">
-            <div class="legend">
+            <div class="legend" id="scheduleLegend">
               <span><span class="swatch" style="background:var(--regular-bg)"></span>Scheduled</span>
               <span><span class="swatch" style="background:var(--training-bg)"></span>Training</span>
               <span><span class="swatch" style="background:var(--event-bg)"></span>Event</span>
@@ -1360,6 +1360,64 @@
 
     // Base configuration
     const STUDENTS = ['Alvaro Izquierdo', 'Naranjan Lal', 'Abhishek Mishra', 'Roshni Patel', 'Nishwa Prajapati', 'Harsith Santhoshkumar', 'Naman Singh', 'Harini Suresh Babu', 'Tamari Vardia', 'Hasti Vekariya', 'Rakesh Venkatesan'];
+    // Default type configuration (used as fallback)
+    const TYPE_DEFAULTS = {
+      regular:  { label: 'Scheduled', bg: '#1f2937', tx: '#ffffff' },
+      training: { label: 'Training',  bg: '#fef08a', tx: '#854d0e' },
+      event:    { label: 'Event',     bg: '#bfdbfe', tx: '#1e3a8a' },
+      closed:   { label: 'Closed',    bg: '#fecaca', tx: '#991b1b' },
+      unavail:  { label: 'Unavailable', bg: '#e9d5ff', tx: '#6b21a8' },
+      override: { label: 'Override',  bg: '#f97316', tx: '#ffffff' }
+    };
+
+    // Merge saved customization with defaults
+    function getTypeConfig() {
+      const saved = (state.data && state.data.typeConfig) || {};
+      const result = {};
+      for (const key of Object.keys(TYPE_DEFAULTS)) {
+        result[key] = { ...TYPE_DEFAULTS[key], ...(saved[key] || {}) };
+      }
+      return result;
+    }
+
+    // Apply type config to CSS variables and TYPES object so all cells update
+    function applyTypeConfig() {
+      const cfg = getTypeConfig();
+      const root = document.documentElement;
+      root.style.setProperty('--regular-bg',  cfg.regular.bg);
+      root.style.setProperty('--regular-tx',  cfg.regular.tx);
+      root.style.setProperty('--training-bg', cfg.training.bg);
+      root.style.setProperty('--training-tx', cfg.training.tx);
+      root.style.setProperty('--event-bg',    cfg.event.bg);
+      root.style.setProperty('--event-tx',    cfg.event.tx);
+      root.style.setProperty('--closed-bg',   cfg.closed.bg);
+      root.style.setProperty('--closed-tx',   cfg.closed.tx);
+      root.style.setProperty('--unavail-bg',  cfg.unavail.bg);
+      root.style.setProperty('--unavail-tx',  cfg.unavail.tx);
+      // Update the TYPES object labels so shift chips and modals reflect changes
+      TYPES.regular.label  = cfg.regular.label;
+      TYPES.training.label = cfg.training.label;
+      TYPES.event.label    = cfg.event.label;
+      TYPES.closed.label   = cfg.closed.label;
+      // Rebuild the legend
+      renderLegend();
+    }
+
+    // Render the legend dynamically from config
+    function renderLegend() {
+      const cfg = getTypeConfig();
+      const legendEl = document.getElementById('scheduleLegend');
+      if (!legendEl) return;
+      legendEl.innerHTML = `
+        <span><span class="swatch" style="background:${cfg.regular.bg}"></span>${cfg.regular.label}</span>
+        <span><span class="swatch" style="background:${cfg.training.bg}"></span>${cfg.training.label}</span>
+        <span><span class="swatch" style="background:${cfg.event.bg}"></span>${cfg.event.label}</span>
+        <span><span class="swatch" style="background:${cfg.closed.bg}"></span>${cfg.closed.label}</span>
+        <span><span class="swatch" style="background:${cfg.unavail.bg}"></span>${cfg.unavail.label}</span>
+        <span style="margin-left:8px;"><span class="chip-overridden" style="position:static;display:inline-flex;">!</span> ${cfg.override.label}</span>
+      `;
+    }
+
     const TYPES = {
       regular: { label: 'Scheduled shift', bg: 'var(--regular-bg)', tx: 'var(--regular-tx)' },
       training: { label: 'Training', bg: 'var(--training-bg)', tx: 'var(--training-tx)' },
@@ -1397,6 +1455,7 @@
     // --- Initialization ---
     async function init() {
       loadData(); // Sync local load (instant)
+      applyTypeConfig(); // Apply custom types to UI
 
       // Restore session if exists BEFORE any async delays to prevent flash
       const savedRole = sessionStorage.getItem('userRole');
@@ -1855,10 +1914,13 @@
         document.getElementById('profStudentSelectorWrapper').style.display = 'block';
         document.getElementById('tab-swaps-btn').style.display = 'block';
         document.getElementById('tab-team-btn').style.display = 'block';
+        // Admin doesn't need to request swaps — hide that button
+        document.getElementById('newSwapBtn').style.display = 'none';
       } else {
         document.getElementById('tab-conflicts-btn').style.display = 'none';
         document.getElementById('profStudentSelectorWrapper').style.display = 'none';
         document.getElementById('tab-swaps-btn').style.display = 'block';
+        document.getElementById('newSwapBtn').style.display = 'inline-flex';
         // Ensure availability tab defaults to the logged-in student
         document.getElementById('profStudentSelector').value = state.userName;
       }
@@ -3021,18 +3083,78 @@
       renderAll();
     };
 
-    function renderTeamTab() {
       if (state.userRole !== 'professor') return;
       const container = document.getElementById('teamRosterContainer');
       if (!container) return;
       if (!state.data.studentProfiles) state.data.studentProfiles = {};
 
-      let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+      // ── Type Customizer Section ────────────────────────────────────────────
+      const cfg = getTypeConfig();
+      const typeKeys = [
+        { key: 'regular',  icon: '🟩', name: 'Scheduled' },
+        { key: 'training', icon: '🟨', name: 'Training' },
+        { key: 'event',    icon: '🟦', name: 'Event' },
+        { key: 'closed',   icon: '🟥', name: 'Closed' },
+        { key: 'unavail',  icon: '🟪', name: 'Unavailable' },
+        { key: 'override', icon: '🔶', name: 'Override' },
+      ];
+
+      let custHtml = `
+      <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:24px;">
+        <div style="background:var(--card);padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:700;font-size:15px;">🎨 Schedule Type Customizer</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:2px;">Change the name and color of each shift type. Changes appear live in the Master Schedule.</div>
+          </div>
+          <button class="btn secondary small" onclick="resetTypeConfig()">Reset to Defaults</button>
+        </div>
+        <div style="padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f9fafb;">
+      `;
+
+      typeKeys.forEach(({ key, icon, name }) => {
+        const c = cfg[key];
+        custHtml += `
+          <div style="border:1px solid var(--line);border-radius:8px;padding:12px;background:white;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="width:22px;height:22px;border-radius:5px;flex-shrink:0;display:inline-block;background:${c.bg};"></span>
+              <strong style="font-size:13px;color:var(--ink);">${icon} ${name}</strong>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;">
+              <input type="text" id="tc_label_${key}" value="${c.label}" placeholder="Label"
+                style="padding:5px 8px;border:1px solid var(--line);border-radius:5px;font-size:13px;width:100%;box-sizing:border-box;"
+                oninput="previewTypeConfig('${key}')">
+              <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+                <span style="font-size:10px;color:var(--sub);font-weight:600;">BG</span>
+                <input type="color" id="tc_bg_${key}" value="${c.bg}" title="Background Color"
+                  style="width:32px;height:28px;border:none;border-radius:4px;cursor:pointer;padding:0;"
+                  oninput="previewTypeConfig('${key}')">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px;align-items:center;">
+                <span style="font-size:10px;color:var(--sub);font-weight:600;">Text</span>
+                <input type="color" id="tc_tx_${key}" value="${c.tx}" title="Text Color"
+                  style="width:32px;height:28px;border:none;border-radius:4px;cursor:pointer;padding:0;"
+                  oninput="previewTypeConfig('${key}')">
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      custHtml += `
+        </div>
+        <div style="padding:12px 18px;border-top:1px solid var(--line);background:#f0f4ff;display:flex;justify-content:flex-end;">
+          <button class="btn" onclick="saveTypeConfig()" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:white;font-weight:700;">💾 Save All Type Changes</button>
+        </div>
+      </div>
+      `;
+
+      // ── Roster Section ─────────────────────────────────────────────────────
+      let rosterHtml = '<div style="display:flex;flex-direction:column;gap:10px;">';
       state.data.students.slice().sort().forEach(st => {
         const isActive = !state.data.inactiveStudents.includes(st);
         const profile = state.data.studentProfiles[st] || {};
         const safeId = st.replace(/[^a-z0-9]/gi, '_');
-        html += `
+        rosterHtml += `
       <div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:${isActive ? 'var(--card)' : '#f9fafb'};">
           <div>
@@ -3070,9 +3192,54 @@
       </div>
     `;
       });
-      html += '</div>';
-      container.innerHTML = html;
+      rosterHtml += '</div>';
+
+      container.innerHTML = custHtml + rosterHtml;
     }
+
+    // ── Type Customizer Helpers ───────────────────────────────
+    window.previewTypeConfig = function (key) {
+      const bg = (document.getElementById('tc_bg_' + key) || {}).value;
+      const tx = (document.getElementById('tc_tx_' + key) || {}).value;
+      if (bg) document.documentElement.style.setProperty('--' + key + '-bg', bg);
+      if (tx) document.documentElement.style.setProperty('--' + key + '-tx', tx);
+      const swatch = document.querySelector(`#tc_label_${key}`);
+      if (swatch) {
+        const card = swatch.closest('div[style*="border-radius:8px"]');
+        if (card) {
+          const sw = card.querySelector('span[style*="border-radius:5px"]');
+          if (sw && bg) sw.style.background = bg;
+        }
+      }
+    };
+
+    window.saveTypeConfig = function () {
+      if (!state.data.typeConfig) state.data.typeConfig = {};
+      ['regular', 'training', 'event', 'closed', 'unavail', 'override'].forEach(key => {
+        const labelEl = document.getElementById('tc_label_' + key);
+        const bgEl    = document.getElementById('tc_bg_' + key);
+        const txEl    = document.getElementById('tc_tx_' + key);
+        if (labelEl && bgEl && txEl) {
+          state.data.typeConfig[key] = {
+            label: labelEl.value.trim() || TYPE_DEFAULTS[key].label,
+            bg: bgEl.value,
+            tx: txEl.value
+          };
+        }
+      });
+      saveData();
+      applyTypeConfig();
+      renderAll();
+      showToast('🎨 Type styles saved! Schedule updated.', 'success', 3000);
+    };
+
+    window.resetTypeConfig = function () {
+      state.data.typeConfig = {};
+      saveData();
+      applyTypeConfig();
+      renderAll(); 
+      showToast('Types reset to defaults.', 'success', 2000);
+    };
 
     window.toggleTeamDetail = function (safeId) {
       const el = document.getElementById('detail_' + safeId);
