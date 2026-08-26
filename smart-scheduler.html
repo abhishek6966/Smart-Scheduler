@@ -1652,8 +1652,8 @@ function openSwapRequestModal() {
         document.getElementById('tab-' + t).style.display = t === 'swaps' ? 'block' : 'none';
       });
       const msg = currentMode === 'exchange'
-        ? \`Exchange request sent to \${req.toStudent}! Waiting for professor approval.\`
-        : \`Cover request sent to \${req.toStudent}! Waiting for professor approval.\`;
+        ? `Exchange request sent to ${req.toStudent}! Waiting for professor approval.`
+        : `Cover request sent to ${req.toStudent}! Waiting for professor approval.`;
       showToast(msg, 'success');
     };
   }
