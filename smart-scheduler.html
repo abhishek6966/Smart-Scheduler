@@ -757,7 +757,11 @@ function renderSchedule() {
         const isWarn = conflicts.length > 0 && !s.overrideReason;
         const hasOverride = !!s.overrideReason;
         
-        html += `<span class="chip ${isWarn ? 'warn' : ''}" style="background:${t.bg};color:${t.tx}" data-edit="${s.id}">
+        let hoverText = t.label;
+        if (hasOverride) hoverText = `Override: ${s.overrideReason}`;
+        else if (isWarn) hoverText = `Conflict: Needs Override! (${t.label})`;
+        
+        html += `<span class="chip ${isWarn ? 'warn' : ''}" style="background:${t.bg};color:${t.tx}" data-edit="${s.id}" title="${escAttr(hoverText)}">
           ${hasOverride ? '<div class="chip-overridden">!</div>' : ''}
           ${fmt(s.start)} - ${fmt(s.end)}
           ${s.location ? `<span class="loc">${s.location}</span>` : ''}
