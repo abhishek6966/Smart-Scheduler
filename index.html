@@ -726,10 +726,13 @@
     .field select,
     .field textarea {
       width: 100%;
+      max-width: 100%;
       padding: 8px 12px;
       border: 1px solid var(--line);
       border-radius: 6px;
       font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .row2 {
