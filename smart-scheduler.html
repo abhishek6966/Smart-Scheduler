@@ -679,16 +679,15 @@ async function loadData() {
     } catch(e) { console.warn('localStorage parse error', e); }
   }
 
-  // Migrate older saved data
-  if (!state.data.students) state.data.students = [...STUDENTS];
-  if (!state.data.inactiveStudents) state.data.inactiveStudents = [];
-
   // 2. If localStorage was empty, seed with initial data
   if (!state.data.shifts || Object.keys(state.data.shifts).length === 0) {
     state.data = JSON.parse(JSON.stringify(INITIAL_DATA));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
   }
-  // Migrate older saved data that didn't have swapRequests
+
+  // Migrate older saved data that didn't have these fields
+  if (!state.data.students) state.data.students = [...STUDENTS];
+  if (!state.data.inactiveStudents) state.data.inactiveStudents = [];
   if (!state.data.swapRequests) state.data.swapRequests = [];
 
   // 3. Try to sync with Google Sheets in background (non-blocking)
