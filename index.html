@@ -1469,7 +1469,12 @@
         try {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 5000); // 5 sec timeout
-          const response = await fetch(APPS_SCRIPT_URL, { signal: controller.signal });
+          // Prevent browser from caching the polling request
+          const cacheBusterUrl = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+          const response = await fetch(cacheBusterUrl, { 
+            signal: controller.signal,
+            cache: 'no-store'
+          });
           clearTimeout(timer);
           const text = await response.text();
           // Only parse if it looks like JSON (not a Google login HTML page)
