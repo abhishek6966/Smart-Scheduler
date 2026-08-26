@@ -287,17 +287,14 @@
     }
 
     .custom-dropdown-list {
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 0;
-      right: 0;
+      position: fixed; /* Escape parent overflow clipping */
       background: rgba(15, 23, 50, 0.97);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 14px;
       overflow: hidden;
-      z-index: 9999;
+      z-index: 99999;
       max-height: 0;
       opacity: 0;
       transition: max-height 0.3s ease, opacity 0.2s ease;
@@ -1681,12 +1678,32 @@
     function initCustomDropdown(dropdownEl, listEl, labelEl, nativeSelect, onChange) {
       const trigger = dropdownEl.querySelector('.custom-dropdown-trigger');
 
+      function positionList() {
+        const rect = trigger.getBoundingClientRect();
+        listEl.style.left = rect.left + 'px';
+        listEl.style.width = rect.width + 'px';
+        // Open below, but flip above if not enough space
+        const spaceBelow = window.innerHeight - rect.bottom - 8;
+        const spaceAbove = rect.top - 8;
+        const listH = Math.min(280, listEl.scrollHeight || 280);
+        if (spaceBelow >= listH || spaceBelow >= spaceAbove) {
+          listEl.style.top = (rect.bottom + 6) + 'px';
+          listEl.style.bottom = 'auto';
+        } else {
+          listEl.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+          listEl.style.top = 'auto';
+        }
+      }
+
       // Open/close on click
       trigger.addEventListener('click', (e) => {
         e.stopPropagation();
         const isOpen = dropdownEl.classList.contains('open');
         document.querySelectorAll('.custom-dropdown.open').forEach(d => d.classList.remove('open'));
-        if (!isOpen) dropdownEl.classList.add('open');
+        if (!isOpen) {
+          dropdownEl.classList.add('open');
+          positionList();
+        }
       });
 
       // Option click
@@ -1709,6 +1726,10 @@
 
       // Close on outside click
       document.addEventListener('click', () => dropdownEl.classList.remove('open'));
+
+      // Reposition on scroll/resize
+      window.addEventListener('resize', () => { if (dropdownEl.classList.contains('open')) positionList(); });
+      window.addEventListener('scroll', () => { if (dropdownEl.classList.contains('open')) positionList(); }, true);
     }
 
     // --- Auth Logic ---
