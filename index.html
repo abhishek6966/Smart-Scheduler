@@ -3330,6 +3330,11 @@
       container.innerHTML = rosterHtml + custHtml + specialHtml;
     }
 
+    // ── Global modal close helper ───────────────────────────────────
+    window.closeModal = function() {
+      document.getElementById('modalRoot').innerHTML = '';
+    };
+
     // ── Special Day Modal ───────────────────────────────────────────────────
     window.openDayTypeModal = function(dateStr, label) {
       const root = document.getElementById('modalRoot');
@@ -3366,7 +3371,7 @@
       } else {
         state.data.specialDays[dateStr] = type;
       }
-      closeModal();
+      document.getElementById('modalRoot').innerHTML = '';
       saveData();
       renderAll();
       const names = { working: 'Working Day', holiday: 'Holiday', closed: 'Closed' };
