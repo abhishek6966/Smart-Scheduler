@@ -767,7 +767,8 @@ function renderSchedule() {
       // Render Unavailability (only show if no shifts cover it fully to avoid clutter, or just show it)
       dayUnavails.forEach(u => {
         const isRecurring = u.dateStr === undefined;
-        html += `<span class="chip" style="background:var(--unavail-bg);color:var(--unavail-tx)">
+        const noteAttr = u.note ? ` title="${escAttr(u.note)}"` : '';
+        html += `<span class="chip" style="background:var(--unavail-bg);color:var(--unavail-tx)"${noteAttr}>
           ${isRecurring ? '🔄 ' : ''}Unavail: ${fmt(u.start)} - ${fmt(u.end)}
         </span>`;
       });
