@@ -2363,7 +2363,8 @@
           const cacheBusterUrl = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
           const response = await fetch(cacheBusterUrl, { 
             signal: controller.signal,
-            cache: 'no-store'
+            cache: 'no-store',
+            redirect: 'follow'
           });
           clearTimeout(timer);
           const text = await response.text();
@@ -2415,7 +2416,11 @@
       // Online — sync to Google Sheets
       setSyncStatus('syncing');
       try {
-        await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(state.data) });
+        await fetch(APPS_SCRIPT_URL, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(state.data) 
+        });
         _pendingSync = false;
         setSyncStatus('synced');
       } catch (e) {
@@ -2434,7 +2439,11 @@
       if (_pendingSync) {
         setSyncStatus('syncing');
         try {
-          await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(state.data) });
+          await fetch(APPS_SCRIPT_URL, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(state.data) 
+          });
           _pendingSync = false;
           setSyncStatus('synced');
         } catch (e) {
