@@ -157,6 +157,7 @@
       max-width: 92vw;
       text-align: center;
       position: relative;
+      overflow: visible; /* Allow dropdowns to overflow card edges */
       animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -287,7 +288,10 @@
     }
 
     .custom-dropdown-list {
-      position: fixed; /* Escape parent overflow clipping */
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
       background: rgba(15, 23, 50, 0.97);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -299,12 +303,14 @@
       opacity: 0;
       transition: max-height 0.3s ease, opacity 0.2s ease;
       box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+      pointer-events: none;
     }
 
     .custom-dropdown-list.open {
       max-height: 280px;
       opacity: 1;
       overflow-y: auto;
+      pointer-events: auto;
     }
 
     .custom-dropdown-list::-webkit-scrollbar {
@@ -1737,75 +1743,53 @@
     function initCustomDropdown(dropdownEl, listEl, labelEl, nativeSelect, onChange) {
       const trigger = dropdownEl.querySelector('.custom-dropdown-trigger');
 
-      // Portal: move the list to <body> so it's never clipped by any parent
-      document.body.appendChild(listEl);
-
-      function positionList() {
-        const rect = trigger.getBoundingClientRect();
-        // Match trigger width and align left edge
-        listEl.style.left = rect.left + 'px';
-        listEl.style.width = rect.width + 'px';
-        // Smart placement: open below normally, flip above if space is tight
-        const spaceBelow = window.innerHeight - rect.bottom - 8;
-        const listH = Math.min(280, listEl.scrollHeight || 200);
-        if (spaceBelow >= listH || spaceBelow >= rect.top) {
-          listEl.style.top = (rect.bottom + 6) + 'px';
-          listEl.style.bottom = 'auto';
-        } else {
-          listEl.style.top = 'auto';
-          listEl.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
-        }
-      }
-
-      // Open/close on click
+      // Open/close on trigger click
       trigger.addEventListener('click', (e) => {
         e.stopPropagation();
         const isOpen = listEl.classList.contains('open');
-        // Close any other open dropdown lists
+        // Close all other open dropdowns first
         document.querySelectorAll('.custom-dropdown-list.open').forEach(d => d.classList.remove('open'));
         document.querySelectorAll('.custom-dropdown.open').forEach(d => d.classList.remove('open'));
         if (!isOpen) {
           dropdownEl.classList.add('open');
           listEl.classList.add('open');
-          positionList();
         }
       });
 
-      // Option click (using mousedown to prevent blur issues)
-      listEl.addEventListener('mousedown', (e) => {
+      // Option selection
+      listEl.addEventListener('click', (e) => {
         const opt = e.target.closest('.custom-dropdown-option');
         if (!opt) return;
-        
+        e.stopPropagation();
+
         const val = opt.dataset.value;
-        
-        // Safely get text without the checkmark span
+
+        // Get clean text without the checkmark span
         const clone = opt.cloneNode(true);
         const check = clone.querySelector('.opt-check');
         if (check) check.remove();
         labelEl.textContent = clone.textContent.trim();
-        
+
         nativeSelect.value = val;
         listEl.querySelectorAll('.custom-dropdown-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
-        
-        // Close
+
+        // Close dropdown
         dropdownEl.classList.remove('open');
         listEl.classList.remove('open');
+
         if (onChange) onChange(val);
       });
 
-      // Close on outside click
+      // Close when clicking outside
       document.addEventListener('click', (e) => {
-        if (!dropdownEl.contains(e.target) && !listEl.contains(e.target)) {
+        if (!dropdownEl.contains(e.target)) {
           dropdownEl.classList.remove('open');
           listEl.classList.remove('open');
         }
       });
-
-      // Reposition on scroll/resize while open
-      window.addEventListener('resize', () => { if (listEl.classList.contains('open')) positionList(); });
-      window.addEventListener('scroll', () => { if (listEl.classList.contains('open')) positionList(); }, true);
     }
+
 
     // --- Auth Logic ---
     function setupAuthListeners() {
