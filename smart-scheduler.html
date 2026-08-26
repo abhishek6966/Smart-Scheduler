@@ -481,6 +481,19 @@
       </div>
     </div>
 
+    <!-- Team Management Tab -->
+    <div id="tab-team" style="display:none;">
+      <div class="card">
+        <h3 style="margin-top:0;">Team Management</h3>
+        <p style="color:var(--sub);font-size:14px;margin-bottom:20px;">Add new students or activate/deactivate existing ones. Deactivated students won't appear in dropdowns or the schedule unless they have past shifts, ensuring no data is ever erased.</p>
+        <div style="display:flex; gap:10px; margin-bottom: 24px;">
+          <input type="text" id="newStudentName" placeholder="Enter full name" style="flex:1; padding:8px; border:1px solid var(--line); border-radius:4px;">
+          <button class="btn" onclick="addNewStudent()">Add Student</button>
+        </div>
+        <div id="teamRosterContainer"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
