@@ -829,7 +829,10 @@ function renderAvailability() {
           <div class="list-desc">${u.dateStr}: ${fmt(u.start)} - ${fmt(u.end)}</div>
           <div class="list-meta">${u.note || ''}</div>
         </div>
-        <button class="btn danger small" onclick="deleteUnavail('${u.id}')">Delete</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn secondary small" onclick="editUnavail('${u.id}')">Edit</button>
+          <button class="btn danger small" onclick="deleteUnavail('${u.id}')">Delete</button>
+        </div>
       </div>
     `).join('');
   }
@@ -847,7 +850,10 @@ function renderAvailability() {
           <div class="list-desc">${daysArr[r.dayOfWeek]}: ${fmt(r.start)} - ${fmt(r.end)}</div>
           <div class="list-meta">${r.note || 'Class'}${r.startDate ? ' (Starts ' + r.startDate + ')' : ''}</div>
         </div>
-        <button class="btn danger small" onclick="deleteRecurring('${r.id}')">Delete</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn secondary small" onclick="editRecurring('${r.id}')">Edit</button>
+          <button class="btn danger small" onclick="deleteRecurring('${r.id}')">Delete</button>
+        </div>
       </div>
     `).join('');
   }
@@ -1080,7 +1086,7 @@ function openShiftModal(student, dayOfWeek, dateStr, existing) {
 }
 
 
-function openUnavailModal(student, isRecurring) {
+function openUnavailModal(student, isRecurring, existing = null) {
   const root = document.getElementById('modalRoot');
   
   let daysHtml = '';
@@ -1097,7 +1103,7 @@ function openUnavailModal(student, isRecurring) {
   root.innerHTML = `
   <div class="modal-backdrop" id="backdrop2">
     <div class="modal">
-      <h3>Add ${isRecurring ? 'Recurring Class' : 'One-Off Unavailability'} - ${student}</h3>
+      <h3>${existing ? 'Edit' : 'Add'} ${isRecurring ? 'Recurring Class' : 'One-Off Unavailability'} - ${student}</h3>
       ${daysHtml}
       <div class="row2">
         <div class="field"><label>Start Time</label><input type="time" id="uStart" value="09:00"></div>
@@ -1115,6 +1121,18 @@ function openUnavailModal(student, isRecurring) {
     </div>
   </div>`;
   
+  if (existing) {
+    document.getElementById('uStart').value = existing.start;
+    document.getElementById('uEnd').value = existing.end;
+    document.getElementById('uNote').value = existing.note || '';
+    if (isRecurring) {
+      document.getElementById('uDay').value = existing.dayOfWeek;
+      if (existing.startDate) document.getElementById('uStartDate').value = existing.startDate;
+    } else {
+      document.getElementById('uDate').value = existing.dateStr;
+    }
+  }
+  
   document.getElementById('uCancel').onclick = () => root.innerHTML = '';
   document.getElementById('backdrop2').addEventListener('click', (e) => { if (e.target.id === 'backdrop2') root.innerHTML = ''; });
   
@@ -1128,16 +1146,34 @@ function openUnavailModal(student, isRecurring) {
     if (isRecurring) {
       const dayOfWeek = parseInt(document.getElementById('uDay').value);
       const startDate = document.getElementById('uStartDate').value || undefined;
-      state.data.recurringClasses.push({ id: 'r_' + Date.now(), student, dayOfWeek, startDate, start, end, note });
+      if (existing) {
+        Object.assign(existing, { dayOfWeek, startDate, start, end, note });
+      } else {
+        state.data.recurringClasses.push({ id: 'r_' + Date.now(), student, dayOfWeek, startDate, start, end, note });
+      }
     } else {
       const dateStr = document.getElementById('uDate').value;
       if (!dateStr) return;
-      state.data.unavailability.push({ id: 'u_' + Date.now(), student, dateStr, start, end, note });
+      if (existing) {
+        Object.assign(existing, { dateStr, start, end, note });
+      } else {
+        state.data.unavailability.push({ id: 'u_' + Date.now(), student, dateStr, start, end, note });
+      }
     }
     
     saveData(); root.innerHTML = ''; renderAll();
   };
 }
+
+window.editUnavail = function(id) {
+  const existing = state.data.unavailability.find(u => u.id === id);
+  if (existing) openUnavailModal(existing.student, false, existing);
+};
+
+window.editRecurring = function(id) {
+  const existing = state.data.recurringClasses.find(r => r.id === id);
+  if (existing) openUnavailModal(existing.student, true, existing);
+};
 
 window.deleteUnavail = function(id) {
   if (!confirm('Remove this unavailability?')) return;
