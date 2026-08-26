@@ -515,6 +515,19 @@ const TYPES = {
   closed: { label: 'Building closed', bg: 'var(--closed-bg)', tx: 'var(--closed-tx)' }
 };
 
+
+// ── Name helpers ──────────────────────────────────────────────────────────────
+function firstName(fullName) {
+  if (!fullName) return '';
+  const parts = fullName.trim().split(' ');
+  return parts[0];
+}
+function lastName(fullName) {
+  if (!fullName) return '';
+  const parts = fullName.trim().split(' ');
+  return parts.length > 1 ? parts.slice(1).join(' ') : '';
+}
+// ─────────────────────────────────────────────────────────────────────────────
 // Global State
 let state = {
   userRole: null, // 'professor' | 'student'
@@ -524,7 +537,8 @@ let state = {
     shifts: {}, // keyed by weekStartStr: [ {id, student, dayOfWeek(0-6), start, end, type, location, overrideReason} ]
     unavailability: [], // {id, student, dateStr(YYYY-MM-DD), start, end, note}
     recurringClasses: [], // {id, student, dayOfWeek(0-6), start, end, note}
-    swapRequests: [] // {id, fromStudent, toStudent, weekStr, shiftId, dateStr, dayOfWeek, start, end, type, reason, status:'pending'|'approved'|'denied'}
+    swapRequests: [], // {id, fromStudent, toStudent, weekStr, shiftId, dateStr, dayOfWeek, start, end, type, reason, status:'pending'|'approved'|'denied'}
+    studentProfiles: {} // keyed by name: {phone, email, major}
   }
 };
 
@@ -689,6 +703,7 @@ async function loadData() {
   if (!state.data.students) state.data.students = [...STUDENTS];
   if (!state.data.inactiveStudents) state.data.inactiveStudents = [];
   if (!state.data.swapRequests) state.data.swapRequests = [];
+  if (!state.data.studentProfiles) state.data.studentProfiles = {};
 
   // 3. Try to sync with Google Sheets in background (non-blocking)
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
@@ -939,7 +954,7 @@ function renderSchedule() {
     });
   }
   
-  let html = '<thead><tr><th>Name</th>';
+  let html = '<thead><tr><th>First Name</th><th>Last Name</th>';
   days.forEach(d => { html += `<th class="day-head">${d.label}<div class="day-date">${d.dateDisplay}</div></th>`; });
   html += '<th class="totcol">Total hrs</th></tr></thead><tbody>';
   
@@ -952,7 +967,7 @@ function renderSchedule() {
   });
   activeOrScheduledStudents.forEach(student => {
     let studentTotalHours = 0;
-    html += `<tr><td style="font-weight: 500;">${student}</td>`;
+    html += `<tr><td style="font-weight: 500;">${firstName(student)}</td><td style="font-weight: 500; color:var(--sub);">${lastName(student)}</td>`;
     
     days.forEach((d, dayIdx) => {
       const dayShifts = weekShifts.filter(s => s.student === student && s.dayOfWeek === dayIdx);
