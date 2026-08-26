@@ -744,49 +744,98 @@
       flex: 1;
     }
 
-    /* ── Compact Time Picker ───────────────────── */
-    .time-picker {
+    /* ── Drum-Wheel Time Picker ──────────────────── */
+    .drum-picker-wrap {
       display: flex;
       align-items: center;
-      gap: 4px;
-      background: var(--bg, #f8fafc);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 4px 8px;
-      width: 100%;
-      box-sizing: border-box;
+      justify-content: center;
+      gap: 0;
+      background: #f0f4ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 14px;
+      padding: 0 8px;
+      overflow: hidden;
+      position: relative;
     }
-    .time-picker select {
-      border: none;
-      background: transparent;
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--ink);
-      padding: 4px 2px;
-      cursor: pointer;
+    .drum-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
       flex: 1;
-      min-width: 0;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      text-align: center;
     }
-    .time-picker select:disabled {
-      opacity: 0.5;
-      cursor: default;
+    .drum-col.ampm-col { flex: 0 0 52px; }
+    .drum-scroll {
+      height: 120px;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      width: 100%;
     }
-    .time-picker .tp-sep {
-      font-size: 16px;
+    .drum-scroll::-webkit-scrollbar { display: none; }
+    .drum-item {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: color 0.15s, font-size 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .drum-item.active {
+      color: #1e293b;
+      font-size: 22px;
+    }
+    .drum-item.ampm-item { font-size: 14px; font-weight: 700; }
+    .drum-item.ampm-item.active { font-size: 16px; color: #3b82f6; }
+    /* Gradient fade overlay */
+    .drum-col::before, .drum-col::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 40px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .drum-col::before { top: 0; background: linear-gradient(to bottom, #f0f4ff 0%, transparent 100%); }
+    .drum-col::after  { bottom: 0; background: linear-gradient(to top, #f0f4ff 0%, transparent 100%); }
+    /* Selection highlight bar */
+    .drum-picker-wrap::before {
+      content: '';
+      position: absolute;
+      left: 8px; right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 40px;
+      background: rgba(59,130,246,0.10);
+      border: 1.5px solid rgba(59,130,246,0.25);
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .drum-sep {
+      font-size: 22px;
       font-weight: 700;
-      color: var(--sub);
+      color: #475569;
+      padding: 0 2px;
       flex-shrink: 0;
-      padding: 0 1px;
+      position: relative;
+      z-index: 3;
     }
-    .time-picker .tp-ampm select {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--primary, #3b82f6);
-      padding: 4px 4px;
+    .drum-divider {
+      width: 1px;
+      height: 60px;
+      background: #c7d2fe;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 3;
     }
 
     .modal-actions {
@@ -2882,46 +2931,104 @@
 
     // --- Modals ---
 
-    // Time Picker Helpers
+    // Time Picker Helpers — drum-wheel scroll version
     function buildTimePicker(id, value24, disabled) {
-      // value24 is "HH:MM" in 24h format
       let h24 = 9, m = 0;
       if (value24) { const [hh, mm] = value24.split(':').map(Number); h24 = hh; m = mm; }
       const ampm = h24 < 12 ? 'AM' : 'PM';
       const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-      const dis = disabled ? 'disabled' : '';
+      // Round minute to nearest 15
+      const nearestM = Math.round(m / 15) * 15 % 60;
+      const dis = disabled ? ' style="pointer-events:none;opacity:0.5;"' : '';
 
-      const hours = Array.from({length:12},(_,i)=>i+1).map(h =>
-        `<option value="${h}" ${h===h12?'selected':''}>${String(h).padStart(2,'0')}</option>`).join('');
-      const mins = ['00','15','30','45'].map(mm =>
-        `<option value="${mm}" ${Number(mm)===m?'selected':''}>${mm}</option>`).join('');
+      const hourItems = [12,1,2,3,4,5,6,7,8,9,10,11].map(h =>
+        `<div class="drum-item${h===h12?' active':''}" data-val="${h}">${String(h).padStart(2,'0')}</div>`).join('');
+      const minItems = [0,15,30,45].map(mm =>
+        `<div class="drum-item${mm===nearestM?' active':''}" data-val="${mm}">${String(mm).padStart(2,'0')}</div>`).join('');
+      const ampmItems = ['AM','PM'].map(ap =>
+        `<div class="drum-item ampm-item${ap===ampm?' active':''}" data-val="${ap}">${ap}</div>`).join('');
 
-      return `<div class="time-picker" id="${id}_picker">
-        <select id="${id}_h" ${dis}>${hours}</select>
-        <span class="tp-sep">:</span>
-        <select id="${id}_m" ${dis}>${mins}</select>
-        <div class="tp-ampm"><select id="${id}_ap" ${dis}>
-          <option value="AM" ${ampm==='AM'?'selected':''}>AM</option>
-          <option value="PM" ${ampm==='PM'?'selected':''}>PM</option>
-        </select></div>
+      return `<div class="drum-picker-wrap" id="${id}_picker"${dis}>
+        <div class="drum-col" id="${id}_hcol">
+          <div class="drum-scroll" id="${id}_hscroll">
+            <div class="drum-item" style="visibility:hidden">00</div>
+            ${hourItems}
+            <div class="drum-item" style="visibility:hidden">00</div>
+          </div>
+        </div>
+        <div class="drum-sep">:</div>
+        <div class="drum-col" id="${id}_mcol">
+          <div class="drum-scroll" id="${id}_mscroll">
+            <div class="drum-item" style="visibility:hidden">00</div>
+            ${minItems}
+            <div class="drum-item" style="visibility:hidden">00</div>
+          </div>
+        </div>
+        <div class="drum-divider"></div>
+        <div class="drum-col ampm-col" id="${id}_apcol">
+          <div class="drum-scroll" id="${id}_apscroll">
+            <div class="drum-item" style="visibility:hidden">-</div>
+            ${ampmItems}
+            <div class="drum-item" style="visibility:hidden">-</div>
+          </div>
+        </div>
         <input type="hidden" id="${id}" value="${value24||''}"/>
       </div>`;
     }
 
     function syncTimePicker(id) {
-      const h = parseInt(document.getElementById(id+'_h').value);
-      const m = document.getElementById(id+'_m').value;
-      const ap = document.getElementById(id+'_ap').value;
+      const hEl = document.getElementById(id+'_hscroll');
+      const mEl = document.getElementById(id+'_mscroll');
+      const apEl = document.getElementById(id+'_apscroll');
+      if (!hEl) return;
+      function getActive(scrollEl) {
+        const items = [...scrollEl.querySelectorAll('.drum-item:not([style*="visibility"])')]
+        const scrollTop = scrollEl.scrollTop;
+        // Each item is 40px; first visible item starts at scrollTop
+        const idx = Math.round(scrollTop / 40);
+        return items[Math.min(idx, items.length-1)];
+      }
+      const hItem = getActive(hEl);
+      const mItem = getActive(mEl);
+      const apItem = getActive(apEl);
+      if (!hItem || !mItem || !apItem) return;
+      // Update active class
+      [hEl,mEl,apEl].forEach(sc => sc.querySelectorAll('.drum-item').forEach(it => it.classList.remove('active')));
+      hItem.classList.add('active');
+      mItem.classList.add('active');
+      apItem.classList.add('active');
+
+      const h = parseInt(hItem.dataset.val);
+      const m = parseInt(mItem.dataset.val);
+      const ap = apItem.dataset.val;
       let h24 = h % 12 + (ap === 'PM' ? 12 : 0);
-      document.getElementById(id).value = String(h24).padStart(2,'0') + ':' + m;
+      document.getElementById(id).value = String(h24).padStart(2,'0') + ':' + String(m).padStart(2,'0');
     }
 
     function attachTimePicker(id, onChange) {
-      ['_h','_m','_ap'].forEach(s => {
+      // Scroll each column to the active item
+      ['_hscroll','_mscroll','_apscroll'].forEach(s => {
         const el = document.getElementById(id+s);
-        if (el) el.addEventListener('change', () => { syncTimePicker(id); if(onChange) onChange(); });
+        if (!el) return;
+        const activeItem = el.querySelector('.drum-item.active');
+        if (activeItem) {
+          // Items start at index 1 (padder at 0)
+          const items = [...el.querySelectorAll('.drum-item:not([style*="visibility"])')]
+          const idx = items.indexOf(activeItem);
+          el.scrollTop = idx * 40;
+        }
+        let tmo;
+        el.addEventListener('scroll', () => {
+          clearTimeout(tmo);
+          tmo = setTimeout(() => {
+            // Snap to nearest
+            const snapped = Math.round(el.scrollTop / 40) * 40;
+            el.scrollTo({ top: snapped, behavior: 'smooth' });
+            setTimeout(() => { syncTimePicker(id); if(onChange) onChange(); }, 120);
+          }, 80);
+        });
       });
-      syncTimePicker(id); // initialise hidden input
+      syncTimePicker(id);
     }
 
     function openShiftModal(student, dayOfWeek, dateStr, existing) {
