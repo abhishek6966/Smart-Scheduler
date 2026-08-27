@@ -2704,8 +2704,12 @@
 
     function getAllUnavailabilityForStudentDay(student, dateStr, dayOfWeek) {
       const oneOffs = state.data.unavailability.filter(u => u.student === student && u.dateStr === dateStr);
+      // dayOfWeek here is the master-schedule loop index: Mon=0, Tue=1 ... Sun=6
+      // dayOfWeek stored in DB is JS getDay(): Sun=0, Mon=1 ... Sat=6
+      // Convert master-schedule index to JS getDay() for comparison:
+      const jsDay = (dayOfWeek + 1) % 7; // Mon(0)->1, Tue(1)->2 ... Sun(6)->0
       const recurring = state.data.recurringClasses.filter(r => {
-        if (r.student !== student || r.dayOfWeek !== dayOfWeek) return false;
+        if (r.student !== student || r.dayOfWeek !== jsDay) return false;
         if (r.startDate && dateStr < r.startDate) return false;
         return true;
       });
@@ -2887,7 +2891,7 @@
       if (recur.length === 0) {
         recurList.innerHTML = '<div class="list-row"><span class="list-desc" style="color:var(--sub); font-weight:normal;">No recurring classes added.</span></div>';
       } else {
-        const daysArr = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const daysArr = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         recurList.innerHTML = recur.map(r => `
       <div class="list-row">
         <div>
@@ -3273,7 +3277,7 @@
 
       let daysHtml = '';
       if (isRecurring) {
-        const daysArr = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const daysArr = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         daysHtml = `<div class="field"><label>Day of Week</label><select id="uDay">
       ${daysArr.map((d, i) => `<option value="${i}">${d}</option>`).join('')}
     </select></div>
