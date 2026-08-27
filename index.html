@@ -2371,25 +2371,31 @@
           // Only parse if it looks like JSON (not a Google login HTML page)
           if (text.trim().startsWith('{')) {
             const data = JSON.parse(text);
-            if (data && data.shifts && Object.keys(data.shifts).length > 0) {
+            // Accept server data if it has ANY meaningful content —
+            // not just shifts (students with only recurring classes have empty shifts!)
+            const hasServerData = data && (
+              Object.keys(data.shifts || {}).length > 0 ||
+              (data.recurringClasses || []).length > 0 ||
+              (data.unavailability || []).length > 0 ||
+              (data.students || []).length > 0
+            );
+            if (hasServerData) {
               const newDataStr = JSON.stringify(data);
               const oldDataStr = JSON.stringify(state.data);
-              
               if (newDataStr !== oldDataStr) {
                 state.data = data;
                 if (Array.isArray(state.data.shifts)) state.data.shifts = {};
                 // Update local cache
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
-                
                 // Refresh UI if app is visible
                 if (document.getElementById('app').style.display !== 'none') {
                   renderAll();
+                  renderSwaps && renderSwaps();
                 }
               }
-            } else if (data && Object.keys(data.shifts || {}).length === 0) {
-              // Remote DB is empty, push our local data to it
-              saveData();
             }
+            // NOTE: We intentionally do NOT push local data to server here.
+            // Only saveData() (triggered by user action) should write to server.
           }
         } catch (e) {
           console.warn('Could not reach Google Sheets backend', e.message);
