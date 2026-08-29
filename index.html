@@ -2775,6 +2775,7 @@
 
       const activeOrScheduledStudents = state.data.students.filter(st => {
         if (!state.data.inactiveStudents.includes(st)) return true;
+        if (state.data.deactivatedDates && state.data.deactivatedDates[st] && state.currentWeekStartStr <= state.data.deactivatedDates[st]) return true;
         const hasShifts = weekShifts.some(s => s.student === st);
         return hasShifts;
       });
@@ -3433,6 +3434,7 @@
 
       const activeOrScheduledStudents = state.data.students.filter(st => {
         if (!state.data.inactiveStudents.includes(st)) return true;
+        if (state.data.deactivatedDates && state.data.deactivatedDates[st] && state.currentWeekStartStr <= state.data.deactivatedDates[st]) return true;
         const hasShifts = weekShifts.some(s => s.student === st);
         return hasShifts;
       });
@@ -4006,10 +4008,13 @@
     };
 
     window.toggleStudentActive = function (name) {
+      if (!state.data.deactivatedDates) state.data.deactivatedDates = {};
       if (state.data.inactiveStudents.includes(name)) {
         state.data.inactiveStudents = state.data.inactiveStudents.filter(s => s !== name);
+        delete state.data.deactivatedDates[name];
       } else {
         state.data.inactiveStudents.push(name);
+        state.data.deactivatedDates[name] = toDateStr(new Date());
       }
       saveData();
       populateStudentSelects();
