@@ -2805,7 +2805,7 @@
             if (hasOverride) hoverText = `Override: ${s.overrideReason}`;
             else if (isWarn) hoverText = `Conflict: Needs Override! (${t.label})`;
 
-            html += `<span class="chip ${isWarn ? 'warn' : ''}" style="background:${t.bg};color:${t.tx}" data-edit="${s.id}" title="${escAttr(hoverText)}">
+            html += `<span class="chip ${isWarn ? 'warn' : ''}" style="background:${t.bg};color:${t.tx}" data-edit="${s.id}" title="${escAttr(hoverText)}" ${!readOnly ? 'draggable="true"' : ''}>
           ${hasOverride ? '<div class="chip-overridden">!</div>' : ''}
           ${fmt(s.start)} - ${fmt(s.end)}
           ${s.location ? `<span class="loc">${s.location}</span>` : ''}
@@ -2846,6 +2846,45 @@
             if (e.target.closest('.chip')) return;
             openShiftModal(td.dataset.student, parseInt(td.dataset.day), td.dataset.datestr, null);
           });
+          
+          // Drag and Drop support for copying shifts
+          td.addEventListener('dragover', (e) => {
+            e.preventDefault(); // allow drop
+            td.style.backgroundColor = 'var(--line)'; // visual cue
+          });
+          td.addEventListener('dragleave', (e) => {
+            td.style.backgroundColor = ''; 
+          });
+          td.addEventListener('drop', (e) => {
+            e.preventDefault();
+            td.style.backgroundColor = '';
+            const shiftId = e.dataTransfer.getData('text/plain');
+            if (!shiftId) return;
+            
+            const originalShift = weekShifts.find(x => x.id === shiftId);
+            if (!originalShift) return;
+
+            const newStudent = td.dataset.student;
+            const newDay = parseInt(td.dataset.day);
+
+            // Ignore if dropping onto the exact same cell
+            if (originalShift.student === newStudent && originalShift.dayOfWeek === newDay) return;
+
+            // Create a copy of the shift
+            getShiftsForWeek().push({
+              id: 's_' + Date.now() + Math.floor(Math.random() * 1000),
+              student: newStudent,
+              dayOfWeek: newDay,
+              start: originalShift.start,
+              end: originalShift.end,
+              type: originalShift.type,
+              location: originalShift.location,
+              overrideReason: originalShift.overrideReason
+            });
+            
+            saveData();
+            renderAll();
+          });
         });
 
         table.querySelectorAll('.chip[data-edit]').forEach(chip => {
@@ -2856,6 +2895,10 @@
             // Find datestr from parent td
             const td = chip.closest('td');
             openShiftModal(s.student, s.dayOfWeek, td.dataset.datestr, s);
+          });
+          chip.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', chip.dataset.edit);
+            e.dataTransfer.effectAllowed = 'copy';
           });
         });
       }
