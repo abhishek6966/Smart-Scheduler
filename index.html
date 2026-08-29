@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <title>UCC Ambassador Smart Scheduler</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <style>
     :root {
       --bg: #f3f4f6;
@@ -3387,13 +3387,49 @@
         });
       }
 
-      const aoa = []; // Array of Arrays for SheetJS
+      const ws_data = [];
       
-      // Build Header Row
-      const headerRow = ["First Name", "Last Name"];
-      days.forEach(d => { headerRow.push(`${d.label} ${d.dateDisplay}`); });
-      headerRow.push("Total hrs");
-      aoa.push(headerRow);
+      // --- Helper for Styles ---
+      const styleBold = { font: { bold: true } };
+      const styleHeader = { font: { bold: true }, alignment: { horizontal: "center", vertical: "center" }, fill: { fgColor: { rgb: "F3F4F6" } }, border: { top: {style: "thin", color: {auto: 1}}, bottom: {style: "thin", color: {auto: 1}}, left: {style: "thin", color: {auto: 1}}, right: {style: "thin", color: {auto: 1}} } };
+      const styleName = { font: { bold: true }, alignment: { vertical: "top" } };
+      const styleCell = { alignment: { wrapText: true, vertical: "top", horizontal: "center" }, border: { top: {style: "thin", color: {rgb: "E5E7EB"}}, bottom: {style: "thin", color: {rgb: "E5E7EB"}}, left: {style: "thin", color: {rgb: "E5E7EB"}}, right: {style: "thin", color: {rgb: "E5E7EB"}} } };
+      
+      // Color map (matching CSS variables)
+      const colors = {
+        regular: { bg: "1F2937", tx: "FFFFFF" },
+        training: { bg: "FEF08A", tx: "854D0E" },
+        event: { bg: "BFDBFE", tx: "1E3A8A" },
+        oue: { bg: "059669", tx: "FFFFFF" },
+        meeting: { bg: "F43F5E", tx: "FFFFFF" },
+        oncall: { bg: "A855F7", tx: "FFFFFF" },
+        unavail: { bg: "E9D5FF", tx: "6B21A8" }
+      };
+
+      // --- LEGEND ---
+      ws_data.push([
+        { v: "LEGEND:", s: styleBold },
+        { v: "Scheduled", s: { fill: { fgColor: { rgb: colors.regular.bg } }, font: { color: { rgb: colors.regular.tx }, bold: true }, alignment: { horizontal: "center" } } },
+        { v: "Training", s: { fill: { fgColor: { rgb: colors.training.bg } }, font: { color: { rgb: colors.training.tx }, bold: true }, alignment: { horizontal: "center" } } },
+        { v: "Event", s: { fill: { fgColor: { rgb: colors.event.bg } }, font: { color: { rgb: colors.event.tx }, bold: true }, alignment: { horizontal: "center" } } },
+        { v: "OUE Hours", s: { fill: { fgColor: { rgb: colors.oue.bg } }, font: { color: { rgb: colors.oue.tx }, bold: true }, alignment: { horizontal: "center" } } },
+        { v: "Meeting", s: { fill: { fgColor: { rgb: colors.meeting.bg } }, font: { color: { rgb: colors.meeting.tx }, bold: true }, alignment: { horizontal: "center" } } },
+        { v: "On-Call", s: { fill: { fgColor: { rgb: colors.oncall.bg } }, font: { color: { rgb: colors.oncall.tx }, bold: true }, alignment: { horizontal: "center" } } },
+        { v: "Unavailable", s: { fill: { fgColor: { rgb: colors.unavail.bg } }, font: { color: { rgb: colors.unavail.tx }, bold: true }, alignment: { horizontal: "center" } } }
+      ]);
+      ws_data.push([]); // Blank row
+
+      // --- Build Header Row ---
+      const headerRow = [
+        { v: "First Name", s: styleHeader }, 
+        { v: "Last Name", s: styleHeader }
+      ];
+      days.forEach(d => { 
+        let text = `${d.label}\n${d.dateDisplay}`;
+        headerRow.push({ v: text, s: styleHeader }); 
+      });
+      headerRow.push({ v: "Total hrs", s: styleHeader });
+      ws_data.push(headerRow);
 
       const activeOrScheduledStudents = state.data.students.filter(st => {
         if (!state.data.inactiveStudents.includes(st)) return true;
@@ -3401,50 +3437,71 @@
         return hasShifts;
       });
 
-      // Build Student Rows
+      const allUnavailsList = []; // To collect unavailabilities for the bottom section
+
+      // --- Build Student Rows ---
       activeOrScheduledStudents.forEach(student => {
         let studentTotalHours = 0;
-        let row = [firstName(student), lastName(student)];
+        let row = [
+          { v: firstName(student), s: styleName }, 
+          { v: lastName(student), s: { alignment: { vertical: "top" } } }
+        ];
 
         days.forEach((d, dayIdx) => {
           const dayShifts = weekShifts.filter(s => s.student === student && s.dayOfWeek === dayIdx);
           const dayUnavails = getAllUnavailabilityForStudentDay(student, d.dateStr, dayIdx);
           
-          let cellLines = [];
-
-          // Render Shifts
-          dayShifts.forEach(s => {
-            studentTotalHours += duration(s.start, s.end);
-            const t = TYPES[s.type] || TYPES.regular;
-            const conflicts = checkOverlap(student, d.dateStr, dayIdx, s.start, s.end);
-            const isWarn = conflicts.length > 0 && !s.overrideReason;
-            const hasOverride = !!s.overrideReason;
-            
-            let shiftText = `${fmt(s.start)} - ${fmt(s.end)} (${t.label})`;
-            if (s.location) shiftText += ` [${s.location}]`;
-            if (hasOverride) shiftText += ` *Override: ${s.overrideReason}*`;
-            else if (isWarn) shiftText += ` *Conflict!*`;
-            
-            cellLines.push(shiftText);
-          });
-
-          // Render Unavailability
+          // Collect unavailabilities for later
           dayUnavails.forEach(u => {
-            const isRecurring = u.dateStr === undefined;
-            let unavText = `${isRecurring ? '(Recurring) ' : ''}Unavail: ${fmt(u.start)} - ${fmt(u.end)}`;
-            if (u.note) unavText += ` [${u.note}]`;
-            cellLines.push(unavText);
+             allUnavailsList.push({
+                student: student,
+                date: d.dateStr,
+                dayLabel: d.label,
+                isRecurring: u.dateStr === undefined,
+                time: `${fmt(u.start)} - ${fmt(u.end)}`,
+                note: u.note || ''
+             });
           });
 
-          row.push(cellLines.join('\n'));
+          // Render Shifts in Cell
+          if (dayShifts.length === 0) {
+             row.push({ v: "", s: styleCell });
+          } else {
+             let cellLines = [];
+             let primaryColor = null;
+             
+             dayShifts.forEach((s, idx) => {
+               studentTotalHours += duration(s.start, s.end);
+               const tKey = s.type || 'regular';
+               const t = TYPES[tKey] || TYPES.regular;
+               
+               if (idx === 0) primaryColor = colors[tKey] || colors.regular;
+               
+               let shiftText = `${fmt(s.start)} - ${fmt(s.end)}`;
+               if (s.location) shiftText += ` [${s.location}]`;
+               if (s.overrideReason) shiftText += ` *Override*`;
+               
+               cellLines.push(shiftText);
+             });
+             
+             let cStyle = Object.assign({}, styleCell);
+             if (primaryColor) {
+                cStyle.fill = { fgColor: { rgb: primaryColor.bg } };
+                cStyle.font = { color: { rgb: primaryColor.tx }, bold: true };
+             }
+             row.push({ v: cellLines.join('\n'), s: cStyle });
+          }
         });
 
-        row.push(Math.round(studentTotalHours * 10) / 10);
-        aoa.push(row);
+        row.push({ v: Math.round(studentTotalHours * 10) / 10, s: styleHeader });
+        ws_data.push(row);
       });
       
-      // Calculate daily totals at the bottom just like the table
-      const dailyTotalsRow = ["Daily total", ""];
+      // --- Calculate daily totals ---
+      const dailyTotalsRow = [
+         { v: "Daily total", s: styleHeader }, 
+         { v: "", s: styleHeader }
+      ];
       let weekTotal = 0;
       days.forEach((d, dayIdx) => {
           let dayTotal = 0;
@@ -3452,30 +3509,57 @@
               if (s.dayOfWeek === dayIdx) dayTotal += duration(s.start, s.end);
           });
           weekTotal += dayTotal;
-          dailyTotalsRow.push(Math.round(dayTotal * 10) / 10);
+          dailyTotalsRow.push({ v: Math.round(dayTotal * 10) / 10, s: styleHeader });
       });
-      dailyTotalsRow.push(Math.round(weekTotal * 10) / 10);
-      aoa.push(dailyTotalsRow);
+      dailyTotalsRow.push({ v: Math.round(weekTotal * 10) / 10, s: styleHeader });
+      ws_data.push(dailyTotalsRow);
 
-      // Create Excel Worksheet
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      // --- UNAVAILABILITIES SECTION ---
+      ws_data.push([]);
+      ws_data.push([]);
+      ws_data.push([{ v: "STUDENT UNAVAILABILITIES", s: { font: { bold: true, sz: 14, color: { rgb: colors.unavail.tx } }, fill: { fgColor: { rgb: colors.unavail.bg } } } }]);
+      
+      if (allUnavailsList.length === 0) {
+         ws_data.push([{ v: "No unavailabilities recorded for this week." }]);
+      } else {
+         ws_data.push([
+            { v: "Student", s: styleHeader },
+            { v: "Date", s: styleHeader },
+            { v: "Type", s: styleHeader },
+            { v: "Time", s: styleHeader },
+            { v: "Note / Reason", s: styleHeader }
+         ]);
+         
+         // Sort by Date, then Student
+         allUnavailsList.sort((a, b) => a.date.localeCompare(b.date) || a.student.localeCompare(b.student));
+         
+         allUnavailsList.forEach(u => {
+            ws_data.push([
+               { v: u.student },
+               { v: `${u.dayLabel}, ${u.date}` },
+               { v: u.isRecurring ? "Recurring" : "One-off", s: { font: { color: { rgb: u.isRecurring ? "2563EB" : "DC2626" } } } },
+               { v: u.time },
+               { v: u.note }
+            ]);
+         });
+      }
 
-      // Set Column Widths
+      // --- Create Excel Worksheet ---
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+      // --- Set Column Widths ---
       ws['!cols'] = [
         {wch: 15}, // First Name
         {wch: 15}, // Last Name
         {wch: 25}, {wch: 25}, {wch: 25}, {wch: 25}, {wch: 25}, {wch: 25}, {wch: 25}, // Mon-Sun
-        {wch: 10}  // Total
+        {wch: 12}  // Total
       ];
       
-      // Enable text wrapping for all cells in sheet
-      for (let i in ws) {
-         if (i[0] === '!') continue;
-         if (!ws[i].s) ws[i].s = {};
-         ws[i].s.alignment = { wrapText: true, vertical: 'top' };
-      }
+      // Set Row Heights for Header
+      ws['!rows'] = [];
+      ws['!rows'][2] = { hpt: 30 }; // Header row taller
 
-      // Create Workbook and Export
+      // --- Create Workbook and Export ---
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Schedule");
       XLSX.writeFile(wb, `Schedule_${state.currentWeekStartStr}.xlsx`);
