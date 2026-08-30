@@ -3097,14 +3097,27 @@
           const idx = items.indexOf(activeItem);
           el.scrollTop = idx * 32;
         }
+        el.wheelDeltaY = 0;
+        el.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          el.wheelDeltaY += e.deltaY;
+          if (Math.abs(el.wheelDeltaY) >= 30) {
+            const dir = Math.sign(el.wheelDeltaY);
+            const currentIdx = Math.round(el.scrollTop / 32);
+            const nextIdx = Math.max(0, currentIdx + dir);
+            el.scrollTo({ top: nextIdx * 32, behavior: 'smooth' });
+            el.wheelDeltaY = 0;
+          }
+          clearTimeout(el.wheelTimeout);
+          el.wheelTimeout = setTimeout(() => { el.wheelDeltaY = 0; }, 100);
+        }, { passive: false });
+
         let tmo;
         el.addEventListener('scroll', () => {
           clearTimeout(tmo);
           tmo = setTimeout(() => {
-            // Snap to nearest
-            const snapped = Math.round(el.scrollTop / 32) * 32;
-            el.scrollTo({ top: snapped, behavior: 'smooth' });
-            setTimeout(() => { syncTimePicker(id); if(onChange) onChange(); }, 120);
+            syncTimePicker(id);
+            if(onChange) onChange();
           }, 80);
         });
       });
