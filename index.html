@@ -2727,7 +2727,7 @@
       const dEnd = addDays(state.currentWeekStartStr, 6);
       document.getElementById('currentWeekDisplay').textContent = `Week of ${dStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${dEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
-      const readOnly = isPastWeek() && state.userRole === 'professor';
+      const readOnly = isPastWeek() && state.userRole !== 'professor';
       document.getElementById('readOnlyWarning').style.display = readOnly ? 'block' : 'none';
 
       renderSchedule();
@@ -2738,7 +2738,7 @@
 
     function renderSchedule() {
       const table = document.getElementById('scheduleTable');
-      const readOnly = (state.userRole === 'student') || isPastWeek();
+      const readOnly = state.userRole !== 'professor';
 
       const days = [];
       for (let i = 0; i < 7; i++) {
@@ -3125,7 +3125,7 @@
     }
 
     function openShiftModal(student, dayOfWeek, dateStr, existing) {
-      const isPast = dateStr < toDateStr(new Date());
+      const isPast = dateStr < toDateStr(new Date()) && state.userRole !== 'professor';
       const isEdit = !!existing;
 
       if (isPast && !isEdit) {
